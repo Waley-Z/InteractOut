@@ -52,47 +52,24 @@ public class MainActivity extends AppCompatActivity {
         if (status.equals("0")) {
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
         }
-//        Intent intent = new Intent(this, MyAccessibilityService.class);
-//        bindService(intent, connection, Context.BIND_AUTO_CREATE);
         Button btn = findViewById(R.id.button);
-        int result = 0;
-        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
-        if (resourceId > 0) {
-            result = getResources().getDimensionPixelSize(resourceId);
-        }
+        int result = getStatusBarWidth();
         Configurations.configuration.setStatusBarHeight(result);
         Log.d(TAG, "onCreate: " + result);
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-//            final WindowInsetsController insetsController = getWindow().getInsetsController();
-//            if (insetsController != null) {
-//                insetsController.hide(WindowInsets.Type.statusBars());
-//            }
-//        }
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                myAccessibilityService.performClick(559, 1656);
-//                Log.d(TAG, "onClick: Button clicked");
                 MyAccessibilityService.myAccessibilityService.disableSelf();
-
             }
         });
     }
-//
-//    private final ServiceConnection connection = new ServiceConnection() {
-//        @Override
-//        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-//            MyAccessibilityService.MyBinder myBinder = (MyAccessibilityService.MyBinder) iBinder;
-//            myAccessibilityService = myBinder.getService();
-//            isAccessibilityServiceRunning = true;
-//            Log.d(TAG, "onServiceConnected: connected");
-//        }
-//
-//        @Override
-//        public void onServiceDisconnected(ComponentName componentName) {
-//            isAccessibilityServiceRunning = false;
-//            Log.d(TAG, "onServiceDisconnected: disconnected");
-//        }
-//    };
 
+    public int getStatusBarWidth() {
+        int result = 0;
+        int resourceId = this.getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = this.getResources().getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
 }

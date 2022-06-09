@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 
 import androidx.annotation.RequiresApi;
@@ -26,23 +27,25 @@ public class Window {
     private ConditionVariable cv = new ConditionVariable(false);
 
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
     public Window(Context context) {
         this.context = context;
         paramsTouchable = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+//                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                        WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS |
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSPARENT);
         paramsNotTouchable = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
-                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+//                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                        WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS |
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSPARENT);
         paramsTouchable.gravity = Gravity.CENTER;
         layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         view = layoutInflater.inflate(R.layout.overlay_window, null);
+//        view.setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN);
         view.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent motionEvent) {
@@ -51,13 +54,11 @@ public class Window {
                 view.dispatchGenericMotionEvent(motionEvent);
                 switch (action) {
                     case (MotionEvent.ACTION_DOWN):
-                        Log.d("ACTION", "Down");
                         Log.d("CLICK X", "" + motionEvent.getX());
                         Log.d("CLICK Y", "" + motionEvent.getY());
                         overlayChangeTouchable(paramsNotTouchable);
                         return false;
                     case (MotionEvent.ACTION_UP):
-                        Log.d("ACTION", "Up");
                         Log.d("CLICK X", "" + motionEvent.getX());
                         Log.d("CLICK Y", "" + motionEvent.getY());
 
@@ -65,6 +66,11 @@ public class Window {
                                 motionEvent.getX(), motionEvent.getY());
                         cv.block(1000);
                         Log.d(TAG, "onTouch: cv opened");
+                        overlayChangeTouchable(paramsTouchable);
+                        return false;
+                    case (MotionEvent.ACTION_CANCEL):
+                        Log.d("CLICK X", "" + motionEvent.getX());
+                        Log.d("CLICK Y", "" + motionEvent.getY());
                         overlayChangeTouchable(paramsTouchable);
                         return false;
                     default:
@@ -82,7 +88,7 @@ public class Window {
         if (view.getWindowToken() == null && view.getParent() == null) {
 //            Handler handler = new Handler();
 //            handler.postDelayed(() -> {
-                windowManager.addView(view, paramsTouchable);
+            windowManager.addView(view, paramsTouchable);
 
             Log.d("Window", "Added");
 //            }, 100);

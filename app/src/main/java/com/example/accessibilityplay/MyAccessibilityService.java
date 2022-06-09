@@ -25,7 +25,6 @@ public class MyAccessibilityService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
         AccessibilityNodeInfo accessibilityNodeInfo = accessibilityEvent.getSource();
         Log.d(TAG, "onAccessibilityEvent: event type is " + AccessibilityEvent.eventTypeToString(accessibilityEvent.getEventType()));
-//        performClick(559, 1656);
     }
 
     public MyAccessibilityService() {
@@ -62,7 +61,7 @@ public class MyAccessibilityService extends AccessibilityService {
     public void performClick(float x, float y) {
         Path path = new Path();
         Log.d(TAG, "performClick: " + statusBarHeight);
-        path.moveTo(x, y + statusBarHeight);
+        path.moveTo(x, y + 2*statusBarHeight);
         GestureDescription.StrokeDescription clickStroke = new GestureDescription.StrokeDescription(path, 1000, 100);
         GestureDescription.Builder clickBuilder = new GestureDescription.Builder();
         clickBuilder.addStroke(clickStroke);
