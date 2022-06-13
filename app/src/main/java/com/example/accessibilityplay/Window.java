@@ -1,7 +1,10 @@
 package com.example.accessibilityplay;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.ConditionVariable;
@@ -13,11 +16,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowManager;
+import android.widget.TextView;
 
 import androidx.annotation.RequiresApi;
 
 public class Window {
-    private Context context;
     private View view;
     private WindowManager windowManager;
     private WindowManager.LayoutParams paramsTouchable;
@@ -25,10 +28,10 @@ public class Window {
     private LayoutInflater layoutInflater;
     private final static String TAG = "LALALA";
     private ConditionVariable cv = new ConditionVariable(false);
+    private long downTime;
 
 
     public Window(Context context) {
-        this.context = context;
         paramsTouchable = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
 //                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
@@ -52,18 +55,24 @@ public class Window {
                 int action = motionEvent.getAction();
                 Log.d(TAG, "onTouch: action " + MotionEvent.actionToString(action));
                 view.dispatchGenericMotionEvent(motionEvent);
+                TextView textView = (TextView) view.findViewById(R.id.textView2);
+                TextView textView2 = (TextView) view.findViewById(R.id.textView3);
                 switch (action) {
                     case (MotionEvent.ACTION_DOWN):
                         Log.d("CLICK X", "" + motionEvent.getX());
                         Log.d("CLICK Y", "" + motionEvent.getY());
+                        textView.setText("ACTION_DOWN at " + motionEvent.getEventTime());
+                        downTime = motionEvent.getEventTime();
                         overlayChangeTouchable(paramsNotTouchable);
                         return false;
                     case (MotionEvent.ACTION_UP):
                         Log.d("CLICK X", "" + motionEvent.getX());
                         Log.d("CLICK Y", "" + motionEvent.getY());
-
+                        textView.setText("ACTION_UP at " + motionEvent.getEventTime());
+                        long duration = motionEvent.getEventTime() - downTime;
+                        textView2.setText("ACTION DURATION: " + duration + " ms");
                         MyAccessibilityService.myAccessibilityService.performClick(
-                                motionEvent.getX(), motionEvent.getY());
+                                motionEvent.getX(), motionEvent.getY(), 1000, duration);
                         cv.block(1000);
                         Log.d(TAG, "onTouch: cv opened");
                         overlayChangeTouchable(paramsTouchable);
@@ -71,10 +80,10 @@ public class Window {
                     case (MotionEvent.ACTION_CANCEL):
                         Log.d("CLICK X", "" + motionEvent.getX());
                         Log.d("CLICK Y", "" + motionEvent.getY());
+                        textView.setText("ACTION_CANCEL at " + motionEvent.getEventTime());
                         overlayChangeTouchable(paramsTouchable);
                         return false;
                     default:
-//                        Log.d("ACTION", "others");
                         return false;
                 }
             }

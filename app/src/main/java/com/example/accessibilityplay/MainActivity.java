@@ -1,39 +1,18 @@
 package com.example.accessibilityplay;
 
-import static android.content.ContentValues.TAG;
-
-import static com.example.accessibilityplay.MyAccessibilityService.myAccessibilityService;
-
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.accessibilityservice.AccessibilityService;
-import android.accessibilityservice.AccessibilityServiceInfo;
-import android.accessibilityservice.GestureDescription;
-import android.app.ActivityManager;
-import android.content.ComponentName;
 import android.content.ContentResolver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
-import android.content.pm.ServiceInfo;
-import android.graphics.Path;
-import android.graphics.Rect;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
-import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity {
 
     final static String TAG = "LALALA";
-    boolean isAccessibilityServiceRunning = false;
 
     @Override
     protected void onDestroy() {
