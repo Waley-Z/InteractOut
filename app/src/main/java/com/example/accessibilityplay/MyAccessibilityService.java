@@ -65,7 +65,7 @@ public class MyAccessibilityService extends AccessibilityService {
     public void performClick(float x, float y, long delay, long duration) {
         Path path = new Path();
         Log.d(TAG, "performClick: " + statusBarHeight);
-        path.moveTo(x, y + 2*statusBarHeight);
+        path.moveTo(x, y);
         GestureDescription.StrokeDescription clickStroke = new GestureDescription.StrokeDescription(path, delay, duration);
         GestureDescription.Builder clickBuilder = new GestureDescription.Builder();
         clickBuilder.addStroke(clickStroke);
