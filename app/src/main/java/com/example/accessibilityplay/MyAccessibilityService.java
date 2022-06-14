@@ -73,16 +73,16 @@ public class MyAccessibilityService extends AccessibilityService {
         Log.d(TAG, "performClick: result is " + res);
     }
 
-    public void draw(MyView view, float x, float y) {
-        y = y + 2*statusBarHeight;
-        Canvas canvas = new Canvas();
-        Paint paint = new Paint();
-        paint.setStrokeWidth(3);
-        paint.setPathEffect(null);
-        paint.setColor(Color.BLACK);
-        paint.setStyle(Paint.Style.STROKE);
-        canvas.drawCircle(x, y, 10, paint);
-        view.draw(canvas);
+    public void performSwipe(float x1, float x2, long delay, long duration) {
+        Path path = new Path();
+        path.moveTo(x1, 1030);
+        path.lineTo(x2, 1000);
+//        path.close();
+        GestureDescription.StrokeDescription swipeStroke = new GestureDescription.StrokeDescription(path, delay, duration);
+        GestureDescription.Builder swipeBuilder = new GestureDescription.Builder();
+        swipeBuilder.addStroke(swipeStroke);
+        boolean res = this.dispatchGesture(swipeBuilder.build(), null, null);
+        Log.d(TAG, "performSwipe: result is " + res);
     }
 
 }

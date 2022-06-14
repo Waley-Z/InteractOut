@@ -29,19 +29,18 @@ public class Window {
     private final static String TAG = "LALALA";
     private ConditionVariable cv = new ConditionVariable(false);
     private long downTime;
+    private float x, y;
 
 
     public Window(Context context) {
         paramsTouchable = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-//                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
                         WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS |
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSPARENT);
         paramsNotTouchable = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
-//                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
                         WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS |
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSPARENT);
@@ -59,8 +58,10 @@ public class Window {
                 TextView textView2 = (TextView) view.findViewById(R.id.textView3);
                 switch (action) {
                     case (MotionEvent.ACTION_DOWN):
-                        Log.d("CLICK X", "" + motionEvent.getX());
-                        Log.d("CLICK Y", "" + motionEvent.getY());
+                        x = motionEvent.getX();
+                        y = motionEvent.getY();
+                        Log.d("CLICK X", "" + x);
+                        Log.d("CLICK Y", "" + y);
                         textView.setText("ACTION_DOWN at " + motionEvent.getEventTime());
                         downTime = motionEvent.getEventTime();
                         overlayChangeTouchable(paramsNotTouchable);
@@ -73,6 +74,7 @@ public class Window {
                         textView2.setText("ACTION DURATION: " + duration + " ms");
                         MyAccessibilityService.myAccessibilityService.performClick(
                                 motionEvent.getX(), motionEvent.getY(), 1000, duration);
+//                        MyAccessibilityService.myAccessibilityService.performSwipe(100, 100, 0, 50);
                         cv.block(1000);
                         Log.d(TAG, "onTouch: cv opened");
                         overlayChangeTouchable(paramsTouchable);
@@ -82,6 +84,11 @@ public class Window {
                         Log.d("CLICK Y", "" + motionEvent.getY());
                         textView.setText("ACTION_CANCEL at " + motionEvent.getEventTime());
                         overlayChangeTouchable(paramsTouchable);
+                        return false;
+                    case (MotionEvent.ACTION_MOVE):
+                        Log.d("CLICK X", "" + motionEvent.getX());
+                        Log.d("CLICK Y", "" + motionEvent.getY());
+                        textView.setText("ACTION_MOVE at " + motionEvent.getEventTime());
                         return false;
                     default:
                         return false;
@@ -120,5 +127,9 @@ public class Window {
         } catch (IllegalArgumentException e) {
             return;
         }
+    }
+
+    private float l1Distance(float x1, float y1, float x2, float y2) {
+        return Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2));
     }
 }
