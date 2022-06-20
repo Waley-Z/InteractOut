@@ -1,13 +1,10 @@
 package com.example.accessibilityplay;
 
 import android.content.Context;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.PixelFormat;
-import android.os.Build;
 import android.os.ConditionVariable;
+import android.os.Handler;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
@@ -15,20 +12,16 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.TextView;
-
-import androidx.annotation.RequiresApi;
 
 public class Window {
     private View view;
     private WindowManager windowManager;
     private WindowManager.LayoutParams paramsTouchable;
-    private WindowManager.LayoutParams paramsNotTouchable;
-    private LayoutInflater layoutInflater;
     private final static String TAG = "LALALA";
     private ConditionVariable cv = new ConditionVariable(false);
+    private boolean isTouchable;
     private long downTime;
     private GestureDetector mDetector;
 
@@ -36,19 +29,16 @@ public class Window {
     public Window(Context context) {
         paramsTouchable = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                        WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS |
-                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSPARENT);
-        paramsNotTouchable = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
-                        WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS |
+                WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS |
+                        WindowManager.LayoutParams.FLAG_IGNORE_CHEEK_PRESSES |
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSPARENT);
         paramsTouchable.gravity = Gravity.CENTER;
-        layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         view = layoutInflater.inflate(R.layout.overlay_window, null);
-//        view.setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN);
+        TextView textViewAction = (TextView) view.findViewById(R.id.textView2);
+        TextView textViewDuration = (TextView) view.findViewById(R.id.textView3);
+        final long[] duration = new long[1];
 
         // get the gesture detector
         mDetector = new GestureDetector(context, new MyGestureListener());
@@ -64,9 +54,24 @@ public class Window {
                 // a return value of false means the detector didn't
                 // recognize the event
 //                Log.d(TAG, "onTouch: \n" + event.toString());
-                if (MotionEvent.actionToString(event.getAction()).equals("ACTION_CANCEL")) {
-                    Log.d(TAG, "onTouch: ACTION_CANCEL");
-//                    overlayChangeTouchable(paramsTouchable);
+                String action = MotionEvent.actionToString(event.getAction());
+                Log.d(TAG, "onTouch: \n" + event);
+                if (action.equals("ACTION_DOWN")) {
+                    downTime = event.getDownTime();
+                }
+                textViewAction.setText(action + " at " + event.getEventTime());
+                switch (action) {
+                    case "ACTION_DOWN":
+                        duration[0] = event.getDownTime();
+                        break;
+                    case "ACTION_UP":
+                        duration[0] = event.getEventTime() - duration[0];
+                        textViewDuration.setText("ACTION_DURATION: " + duration[0] + " ms");
+                        break;
+                    case "ACTION_CANCEL":
+                        duration[0] = event.getEventTime() - duration[0];
+                        textViewDuration.setText("ACTION_DURATION: " + duration[0] + " ms");
+                        break;
                 }
                 return mDetector.onTouchEvent(event);
 
@@ -80,39 +85,9 @@ public class Window {
 //            @Override
 //            public boolean onTouch(View v, MotionEvent motionEvent) {
 //                int action = motionEvent.getAction();
-//                Log.d(TAG, "onTouch: action " + MotionEvent.actionToString(action));
-//                view.dispatchGenericMotionEvent(motionEvent);
-//                TextView textView = (TextView) view.findViewById(R.id.textView2);
-//                TextView textView2 = (TextView) view.findViewById(R.id.textView3);
-//                switch (action) {
-//                    case (MotionEvent.ACTION_DOWN):
-//                        Log.d("CLICK X", "" + motionEvent.getX());
-//                        Log.d("CLICK Y", "" + motionEvent.getY());
-//                        textView.setText("ACTION_DOWN at " + motionEvent.getEventTime());
-//                        downTime = motionEvent.getEventTime();
-//                        overlayChangeTouchable(paramsNotTouchable);
-//                        return false;
-//                    case (MotionEvent.ACTION_UP):
-//                        Log.d("CLICK X", "" + motionEvent.getX());
-//                        Log.d("CLICK Y", "" + motionEvent.getY());
-//                        textView.setText("ACTION_UP at " + motionEvent.getEventTime());
-//                        long duration = motionEvent.getEventTime() - downTime;
-//                        textView2.setText("ACTION DURATION: " + duration + " ms");
-//                        MyAccessibilityService.myAccessibilityService.performClick(
-//                                motionEvent.getX(), motionEvent.getY(), 0, duration);
-//                        cv.block(1000);
-//                        Log.d(TAG, "onTouch: cv opened");
-//                        overlayChangeTouchable(paramsTouchable);
-//                        return false;
-//                    case (MotionEvent.ACTION_CANCEL):
-//                        Log.d("CLICK X", "" + motionEvent.getX());
-//                        Log.d("CLICK Y", "" + motionEvent.getY());
-//                        textView.setText("ACTION_CANCEL at " + motionEvent.getEventTime());
-//                        overlayChangeTouchable(paramsTouchable);
-//                        return false;
-//                    default:
-//                        return false;
-//                }
+//                Log.d(TAG, "onTouch: \n" + motionEvent);
+//                v.performClick();
+//                return false;
 //            }
 //        });
 
@@ -125,6 +100,7 @@ public class Window {
 //            Handler handler = new Handler();
 //            handler.postDelayed(() -> {
             windowManager.addView(view, paramsTouchable);
+            isTouchable = true;
 
             Log.d("Window", "Added");
 //            }, 100);
@@ -140,61 +116,99 @@ public class Window {
         }
     }
 
-    private void overlayChangeTouchable(WindowManager.LayoutParams params) {
-        try {
-            windowManager.updateViewLayout(view, params);
-            Log.d(TAG, "overlayChangeTouchable: changing overlay touchability");
-        } catch (IllegalArgumentException e) {
-            return;
+
+    private void changeToNotTouchable(long delay) {
+        if (isTouchable) {
+            isTouchable = false;
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    windowManager.removeView(view);
+                }
+            }, delay);
         }
+    }
+
+    private void changeToTouchable(long delay) {
+        if (!isTouchable) {
+            isTouchable = true;
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    windowManager.addView(view, paramsTouchable);
+                }
+            }, delay);
+
+        }
+
     }
 
     // In the SimpleOnGestureListener subclass you should override
     // onDown and any other gesture that you want to detect.
-    class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
+    public class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
 
         @Override
         public boolean onDown(MotionEvent event) {
-            Log.d("GESTURE","onDown: \n" + event.toString());
+            Log.d("GESTURE", "onDown: \n" + event.toString());
 
             // don't return false here or else none of the other
             // gestures will work
-            overlayChangeTouchable(paramsNotTouchable);
-
             return true;
         }
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
             Log.i("GESTURE", "onSingleTapConfirmed: \n" + e.toString());
-            MyAccessibilityService.myAccessibilityService.performClick(
-                                e.getX(), e.getY(), 1000, 50);
-            cv.block(1000);
-            overlayChangeTouchable(paramsTouchable);
+            changeToNotTouchable(950);
+            MyAccessibilityService.myAccessibilityService.performSingleTap(
+                    e.getX(), e.getY(), 1000, 50);
+            changeToTouchable(1000);
             return true;
         }
 
         @Override
         public void onLongPress(MotionEvent e) {
             Log.i("GESTURE", "onLongPress: \n" + e.toString());
-            MyAccessibilityService.myAccessibilityService.performClick(
-                    e.getX(), e.getY(), 0, 800);
-            cv.block(1000);
-            overlayChangeTouchable(paramsTouchable);
+//            Log.d(TAG, "onLongPress: Before isTouchable " + isTouchable);
+//            MyAccessibilityService.myAccessibilityService.performClick(
+//                    500, 1000, 1000, 400);
+//            Log.d(TAG, "onLongPress: After isTouchable " + isTouchable);
+//            cv.block(1000);
+//            overlayChangeTouchable(paramsTouchable, "onLongPress");
+            cv.block(2000);
+            changeToNotTouchable(0);
+            // Use handler to perform delay
+//            Handler handler = new Handler();
+//            handler.postDelayed(new Runnable() {
+//                @Override
+//                public void run() {
+//                    MyAccessibilityService.myAccessibilityService.performSingleTap(
+//                            e.getX(), e.getY(), 0, 5000);
+//                }
+//            }, 200);
+//            changeToTouchable(6000);
         }
 
         @Override
         public boolean onDoubleTap(MotionEvent e) {
+            // Can be more precise simulation, not just using fixed one.
             Log.i("GESTURE", "onDoubleTap: \n" + e.toString());
-            overlayChangeTouchable(paramsTouchable);
+            // block to let the finger leave the screen. If the figure do not leave the screen, the simulated double tap does not work
+            cv.block(200);
+            changeToNotTouchable(0);
+            MyAccessibilityService.myAccessibilityService.performDoubleTap(
+                    e.getX(), e.getY(), 30, 40, downTime - e.getDownTime());
+            changeToTouchable(1200);
             return true;
         }
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2,
                                 float distanceX, float distanceY) {
-            Log.d("GESTURE", "onScroll: \n" + e1.toString() +"\n" +e2.toString()+"\ndistance: (" + distanceX + ", " + distanceY + ")");
-            overlayChangeTouchable(paramsTouchable);
+            Log.d("GESTURE", "onScroll: \n" + e1.toString() + "\n" + e2.toString() + "\ndistance: (" + distanceX + ", " + distanceY + ")");
+//            overlayChangeTouchable(paramsTouchable, "onScroll");
             return true;
         }
 
@@ -207,9 +221,15 @@ public class Window {
         @Override
         public boolean onDoubleTapEvent(MotionEvent e) {
             Log.d(TAG, "onDoubleTapEvent: \n" + e.toString());
-            return super.onDoubleTapEvent(e);
+            return true;
         }
 
+
+        @Override
+        public void onShowPress(MotionEvent e) {
+            Log.d(TAG, "onShowPress: \n" + e);
+            super.onShowPress(e);
+        }
 
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
@@ -220,8 +240,8 @@ public class Window {
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2,
                                float velocityX, float velocityY) {
-            Log.d("GESTURE", "onFling: \n" + e1.toString() +"\n" +e2.toString()+"\nvelocity: (" + velocityX + ", " + velocityY + ")");
-            overlayChangeTouchable(paramsTouchable);
+            Log.d("GESTURE", "onFling: \n" + e1.toString() + "\n" + e2.toString() + "\nvelocity: (" + velocityX + ", " + velocityY + ")");
+//            overlayChangeTouchable(paramsTouchable, "onFling");
             return true;
         }
     }

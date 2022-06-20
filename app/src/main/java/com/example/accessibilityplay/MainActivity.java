@@ -5,14 +5,17 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.ConditionVariable;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
 
     final static String TAG = "LALALA";
+    private int count = 0;
 
     @Override
     protected void onDestroy() {
@@ -39,6 +42,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 MyAccessibilityService.myAccessibilityService.disableSelf();
+            }
+        });
+        Button btn2 = findViewById(R.id.button2);
+        TextView textView = findViewById(R.id.textView);
+        btn2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                count++;
+                textView.setText("" + count);
             }
         });
     }
