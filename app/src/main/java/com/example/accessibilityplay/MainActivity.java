@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.ConditionVariable;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -35,9 +36,6 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
         }
         Button btn = findViewById(R.id.button);
-        int result = getStatusBarWidth();
-        Configurations.configuration.setStatusBarHeight(result);
-        Log.d(TAG, "onCreate: " + result);
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -53,14 +51,5 @@ public class MainActivity extends AppCompatActivity {
                 textView.setText("" + count);
             }
         });
-    }
-
-    public int getStatusBarWidth() {
-        int result = 0;
-        int resourceId = this.getResources().getIdentifier("status_bar_height", "dimen", "android");
-        if (resourceId > 0) {
-            result = this.getResources().getDimensionPixelSize(resourceId);
-        }
-        return result;
     }
 }

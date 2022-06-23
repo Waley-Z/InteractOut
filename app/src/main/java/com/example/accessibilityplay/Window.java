@@ -15,6 +15,8 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import java.io.IOException;
+
 public class Window {
     private View view;
     private WindowManager windowManager;
@@ -22,7 +24,9 @@ public class Window {
     private final static String TAG = "LALALA";
     private ConditionVariable cv = new ConditionVariable(false);
     private boolean isTouchable;
-    private long downTime;
+    private long downTime, lastScrollTime;
+    private float x, y, downX, downY;
+    private int scrollNumber = 0;
     private GestureDetector mDetector;
 
 
@@ -58,6 +62,13 @@ public class Window {
                 Log.d(TAG, "onTouch: \n" + event);
                 if (action.equals("ACTION_DOWN")) {
                     downTime = event.getDownTime();
+                    downX = event.getX();
+                    downY = event.getY();
+                } else if (action.equals("ACTION_UP") && scrollNumber > 0 && lastScrollTime > downTime) {
+                    changeToNotTouchable(0);
+                    MyAccessibilityService.myAccessibilityService.performSwipe(downX, downY, x, y, 50, lastScrollTime - downTime);
+                    changeToTouchable(lastScrollTime - downTime );
+                    scrollNumber = 0;
                 }
                 textViewAction.setText(action + " at " + event.getEventTime());
                 switch (action) {
@@ -81,21 +92,13 @@ public class Window {
         // Add a touch listener to the view
         // The touch listener passes all its events on to the gesture detector
         view.setOnTouchListener(touchListener);
-//        view.setOnTouchListener(new View.OnTouchListener() {
-//            @Override
-//            public boolean onTouch(View v, MotionEvent motionEvent) {
-//                int action = motionEvent.getAction();
-//                Log.d(TAG, "onTouch: \n" + motionEvent);
-//                v.performClick();
-//                return false;
-//            }
-//        });
 
-        view.setBackgroundColor(Color.parseColor("#aa123567"));
+        view.setBackgroundColor(Color.parseColor("#00123567"));
         windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
     }
 
     public void open() {
+
         if (view.getWindowToken() == null && view.getParent() == null) {
 //            Handler handler = new Handler();
 //            handler.postDelayed(() -> {
@@ -105,6 +108,7 @@ public class Window {
             Log.d("Window", "Added");
 //            }, 100);
         }
+
     }
 
     public void close() {
@@ -131,13 +135,18 @@ public class Window {
     }
 
     private void changeToTouchable(long delay) {
+
         if (!isTouchable) {
             isTouchable = true;
             Handler handler = new Handler();
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    windowManager.addView(view, paramsTouchable);
+                    try {
+                        windowManager.addView(view, paramsTouchable);
+                    } catch (WindowManager.BadTokenException | IllegalArgumentException ignore) {
+
+                    }
                 }
             }, delay);
 
@@ -161,15 +170,16 @@ public class Window {
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
             Log.i("GESTURE", "onSingleTapConfirmed: \n" + e.toString());
-            changeToNotTouchable(950);
+            changeToNotTouchable(1800);
             MyAccessibilityService.myAccessibilityService.performSingleTap(
-                    e.getX(), e.getY(), 1000, 50);
-            changeToTouchable(1000);
+                    e.getX(), e.getY(), 1950, 50);
+            changeToTouchable(2000);
             return true;
         }
 
         @Override
         public void onLongPress(MotionEvent e) {
+            // TODO proper manipulation
             Log.i("GESTURE", "onLongPress: \n" + e.toString());
 //            Log.d(TAG, "onLongPress: Before isTouchable " + isTouchable);
 //            MyAccessibilityService.myAccessibilityService.performClick(
@@ -179,6 +189,11 @@ public class Window {
 //            overlayChangeTouchable(paramsTouchable, "onLongPress");
             cv.block(2000);
             changeToNotTouchable(0);
+//            try {
+//                Runtime.getRuntime().exec("input motionevent DOWN 500 1500");
+//            } catch (IOException ee) {
+//                ee.printStackTrace();
+//            }
             // Use handler to perform delay
 //            Handler handler = new Handler();
 //            handler.postDelayed(new Runnable() {
@@ -200,15 +215,18 @@ public class Window {
             changeToNotTouchable(0);
             MyAccessibilityService.myAccessibilityService.performDoubleTap(
                     e.getX(), e.getY(), 30, 40, downTime - e.getDownTime());
-            changeToTouchable(1200);
+            changeToTouchable(downTime - e.getDownTime() + 30);
             return true;
         }
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2,
                                 float distanceX, float distanceY) {
+            scrollNumber ++;
+            lastScrollTime = e2.getEventTime();
+            x = e2.getX();
+            y = e2.getY();
             Log.d("GESTURE", "onScroll: \n" + e1.toString() + "\n" + e2.toString() + "\ndistance: (" + distanceX + ", " + distanceY + ")");
-//            overlayChangeTouchable(paramsTouchable, "onScroll");
             return true;
         }
 
@@ -240,8 +258,11 @@ public class Window {
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2,
                                float velocityX, float velocityY) {
+            x = e2.getX();
+            y = e2.getY();
+            scrollNumber ++;
+            lastScrollTime = e2.getEventTime();
             Log.d("GESTURE", "onFling: \n" + e1.toString() + "\n" + e2.toString() + "\nvelocity: (" + velocityX + ", " + velocityY + ")");
-//            overlayChangeTouchable(paramsTouchable, "onFling");
             return true;
         }
     }
