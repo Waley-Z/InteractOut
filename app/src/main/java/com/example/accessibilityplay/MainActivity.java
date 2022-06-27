@@ -5,13 +5,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.ConditionVariable;
 import android.provider.Settings;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.TextView;
+
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -49,6 +51,32 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 count++;
                 textView.setText("" + count);
+            }
+        });
+        Switch revertDirectionSwitch = (Switch) findViewById(R.id.swipeDirectionSwtch);
+        revertDirectionSwitch.setOnCheckedChangeListener((compoundButton, b) -> {
+            MyAccessibilityService.revertDirection = b;
+        });
+        SeekBar tapDelay = (SeekBar) findViewById(R.id.tapDelayBar);
+        TextView tapDelayDisplay = findViewById(R.id.tapDelayDisplay);
+        int MAXPROGRESS = 2000;
+        tapDelay.setMax(MAXPROGRESS);
+        tapDelay.setProgress(1);
+        tapDelay.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                tapDelayDisplay.setText(String.format(Locale.ENGLISH,"%d ms", progress));
+                MyAccessibilityService.tapDelay = progress;
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
             }
         });
     }

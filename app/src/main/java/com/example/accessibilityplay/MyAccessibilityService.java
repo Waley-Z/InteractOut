@@ -31,6 +31,8 @@ import java.util.Arrays;
 
 public class MyAccessibilityService extends AccessibilityService {
     public static MyAccessibilityService myAccessibilityService;
+    public static boolean revertDirection = false;
+    public static long tapDelay = 0;
     final static String TAG = "LALALA";
     private Window window;
     private int statusBarHeight;
@@ -107,13 +109,17 @@ public class MyAccessibilityService extends AccessibilityService {
     public void performSwipe(int numFigure, float[] x1, float[] y1, float[] x2, float[] y2, long delay, long duration) {
         Log.d(TAG, "performSwipe: \n" + numFigure);
         Path[] path = new Path[numFigure];
-//        Log.d(TAG, "performSwipe: " + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2);
         GestureDescription.StrokeDescription[] swipeStroke = new GestureDescription.StrokeDescription[numFigure];
         GestureDescription.Builder swipeBuilder = new GestureDescription.Builder();
         for (int i = 0; i < numFigure; i++) {
             path[i] = new Path();
-            path[i].moveTo(x1[i], y1[i]);
-            path[i].lineTo(x2[i], y2[i]);
+            if (revertDirection) {
+                path[i].moveTo(x2[i], y2[i]);
+                path[i].lineTo(x1[i], y1[i]);
+            } else {
+                path[i].moveTo(x1[i], y1[i]);
+                path[i].lineTo(x2[i], y2[i]);
+            }
             Log.d(TAG, "performSwipe: \n" + x1[i] + ' ' + y1[i] + ' ' + x2[i] + ' ' + y2[i]);
             swipeStroke[i] = new GestureDescription.StrokeDescription(path[i], delay, duration);
             swipeBuilder.addStroke(swipeStroke[i]);

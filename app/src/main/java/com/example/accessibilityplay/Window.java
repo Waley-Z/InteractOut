@@ -44,6 +44,7 @@ public class Window {
         paramsListener.gravity = Gravity.TOP | Gravity.START;
         LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         overlay = layoutInflater.inflate(R.layout.overlay_window, null);
+        // listener view is used for listening to the touch event during the temporary disable of long press
         listener = layoutInflater.inflate(R.layout.overlay_window, null);
         TextView textViewAction = (TextView) overlay.findViewById(R.id.textView2);
         TextView textViewDuration = (TextView) overlay.findViewById(R.id.textView3);
@@ -74,13 +75,13 @@ public class Window {
                         downY[event.getPointerId(i)] = event.getRawY(i);
                     }
                 } else if (action.equals("ACTION_UP") && scrollNumber > 0 && lastScrollTime > downTime) {
-                    changeToNotTouchable(overlay, 0);
+                    changeToNotTouchable(overlay, MyAccessibilityService.tapDelay);
                     MyAccessibilityService.myAccessibilityService.performSwipe(
                             numFingers, downX, downY,
                             x,
                             y,
-                            50, lastScrollTime - downTime);
-                    changeToTouchable(overlay, paramsTouchable, lastScrollTime - downTime);
+                            MyAccessibilityService.tapDelay + 50, lastScrollTime - downTime);
+                    changeToTouchable(overlay, paramsTouchable, lastScrollTime - downTime + MyAccessibilityService.tapDelay);
                     scrollNumber = 0;
                     numFingers = 0;
                 }
@@ -188,41 +189,19 @@ public class Window {
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
             Log.i("GESTURE", "onSingleTapConfirmed: \n" + e.toString());
-            changeToNotTouchable(overlay, 1800);
+            changeToNotTouchable(overlay, MyAccessibilityService.tapDelay);
             MyAccessibilityService.myAccessibilityService.performSingleTap(
-                    e.getRawX(), e.getRawY(), 1950, 50);
-            changeToTouchable(overlay, paramsTouchable, 2000);
+                    e.getRawX(), e.getRawY(), MyAccessibilityService.tapDelay + 50, 50);
+            changeToTouchable(overlay, paramsTouchable, MyAccessibilityService.tapDelay + 150);
             return true;
         }
 
         @Override
         public void onLongPress(MotionEvent e) {
-            // TODO proper manipulation
             Log.i("GESTURE", "onLongPress: \n" + e.toString());
-//            Log.d(TAG, "onLongPress: Before isTouchable " + isTouchable);
-//            MyAccessibilityService.myAccessibilityService.performClick(
-//                    500, 1000, 1000, 400);
-//            Log.d(TAG, "onLongPress: After isTouchable " + isTouchable);
-//            cv.block(1000);
-//            overlayChangeTouchable(paramsTouchable, "onLongPress");
             cv.block(2000);
             changeToNotTouchable(overlay, 0);
             changeToTouchable(listener, paramsListener, 0);
-//            try {
-//                Runtime.getRuntime().exec("input motionevent DOWN 500 1500");
-//            } catch (IOException ee) {
-//                ee.printStackTrace();
-//            }
-            // Use handler to perform delay
-//            Handler handler = new Handler();
-//            handler.postDelayed(new Runnable() {
-//                @Override
-//                public void run() {
-//                    MyAccessibilityService.myAccessibilityService.performSingleTap(
-//                            e.getRawX(), e.getRawY(), 0, 5000);
-//                }
-//            }, 200);
-//            changeToTouchable(6000);
         }
 
         @Override
@@ -231,10 +210,10 @@ public class Window {
             Log.i("GESTURE", "onDoubleTap: \n" + e.toString());
             // block to let the finger leave the screen. If the figure do not leave the screen, the simulated double tap does not work
             cv.block(200);
-            changeToNotTouchable(overlay, 0);
+            changeToNotTouchable(overlay, MyAccessibilityService.tapDelay);
             MyAccessibilityService.myAccessibilityService.performDoubleTap(
-                    e.getRawX(), e.getRawY(), 30, 40, downTime - e.getDownTime());
-            changeToTouchable(overlay, paramsTouchable, downTime - e.getDownTime() + 30);
+                    e.getRawX(), e.getRawY(), MyAccessibilityService.tapDelay + 30, 40, downTime - e.getDownTime());
+            changeToTouchable(overlay, paramsTouchable, downTime - e.getDownTime() + MyAccessibilityService.tapDelay + 30);
             return true;
         }
 
