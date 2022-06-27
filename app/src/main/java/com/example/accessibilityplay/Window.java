@@ -23,8 +23,8 @@ public class Window {
     private ConditionVariable cv = new ConditionVariable(false);
     private boolean isTouchable;
     private long downTime, lastScrollTime;
-    private float x, y, downX, downY;
-    private int scrollNumber = 0, downNumber = 0;
+    private float[] x = new float[10], y = new float[10], downX = new float[10], downY = new float[10];
+    private int scrollNumber = 0, downNumber = 0, numFingers = 0;
     private GestureDetector mDetector;
 
 
@@ -39,7 +39,7 @@ public class Window {
         paramsListener = new WindowManager.LayoutParams(1, 1,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-                WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+                        WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
                 PixelFormat.TRANSPARENT);
         paramsListener.gravity = Gravity.TOP | Gravity.START;
         LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -62,18 +62,27 @@ public class Window {
                 // a return value of true means the detector is handling it
                 // a return value of false means the detector didn't
                 // recognize the event
-//                Log.d(TAG, "onTouch: \n" + event.toString());
                 String action = MotionEvent.actionToString(event.getAction());
-                Log.d(TAG, "onTouch: \n" + event);
-                if (action.equals("ACTION_DOWN")) {
+                Log.d(TAG, "onTouch: \n" + event.toString());
+                action = action.split("\\(")[0];
+                Log.d(TAG, "onTouch: \n" + action + ' ' + event.getPointerCount());
+                numFingers = Math.max(event.getPointerCount(), numFingers);
+                if (action.equals("ACTION_DOWN") || action.equals("ACTION_POINTER_DOWN")) {
                     downTime = event.getDownTime();
-                    downX = event.getX();
-                    downY = event.getY();
+                    for (int i = 0; i < numFingers; i++) {
+                        downX[event.getPointerId(i)] = event.getRawX(i);
+                        downY[event.getPointerId(i)] = event.getRawY(i);
+                    }
                 } else if (action.equals("ACTION_UP") && scrollNumber > 0 && lastScrollTime > downTime) {
                     changeToNotTouchable(overlay, 0);
-                    MyAccessibilityService.myAccessibilityService.performSwipe(downX, downY, x, y, 50, lastScrollTime - downTime);
-                    changeToTouchable(overlay, paramsTouchable, lastScrollTime - downTime );
+                    MyAccessibilityService.myAccessibilityService.performSwipe(
+                            numFingers, downX, downY,
+                            x,
+                            y,
+                            50, lastScrollTime - downTime);
+                    changeToTouchable(overlay, paramsTouchable, lastScrollTime - downTime);
                     scrollNumber = 0;
+                    numFingers = 0;
                 }
                 textViewAction.setText(action + " at " + event.getEventTime());
                 switch (action) {
@@ -81,16 +90,13 @@ public class Window {
                         duration[0] = event.getDownTime();
                         break;
                     case "ACTION_UP":
-                        duration[0] = event.getEventTime() - duration[0];
-                        textViewDuration.setText("ACTION_DURATION: " + duration[0] + " ms");
-                        break;
                     case "ACTION_CANCEL":
                         duration[0] = event.getEventTime() - duration[0];
                         textViewDuration.setText("ACTION_DURATION: " + duration[0] + " ms");
                         break;
                 }
                 return mDetector.onTouchEvent(event);
-
+//                return false;
             }
         };
 
@@ -184,7 +190,7 @@ public class Window {
             Log.i("GESTURE", "onSingleTapConfirmed: \n" + e.toString());
             changeToNotTouchable(overlay, 1800);
             MyAccessibilityService.myAccessibilityService.performSingleTap(
-                    e.getX(), e.getY(), 1950, 50);
+                    e.getRawX(), e.getRawY(), 1950, 50);
             changeToTouchable(overlay, paramsTouchable, 2000);
             return true;
         }
@@ -213,7 +219,7 @@ public class Window {
 //                @Override
 //                public void run() {
 //                    MyAccessibilityService.myAccessibilityService.performSingleTap(
-//                            e.getX(), e.getY(), 0, 5000);
+//                            e.getRawX(), e.getRawY(), 0, 5000);
 //                }
 //            }, 200);
 //            changeToTouchable(6000);
@@ -227,7 +233,7 @@ public class Window {
             cv.block(200);
             changeToNotTouchable(overlay, 0);
             MyAccessibilityService.myAccessibilityService.performDoubleTap(
-                    e.getX(), e.getY(), 30, 40, downTime - e.getDownTime());
+                    e.getRawX(), e.getRawY(), 30, 40, downTime - e.getDownTime());
             changeToTouchable(overlay, paramsTouchable, downTime - e.getDownTime() + 30);
             return true;
         }
@@ -235,18 +241,14 @@ public class Window {
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2,
                                 float distanceX, float distanceY) {
-            scrollNumber ++;
+            scrollNumber++;
             lastScrollTime = e2.getEventTime();
-            x = e2.getX();
-            y = e2.getY();
+            for (int i = 0; i < e2.getPointerCount(); i++) {
+                x[e2.getPointerId(i)] = e2.getRawX(i);
+                y[e2.getPointerId(i)] = e2.getRawY(i);
+            }
             Log.d("GESTURE", "onScroll: \n" + e1.toString() + "\n" + e2.toString() + "\ndistance: (" + distanceX + ", " + distanceY + ")");
             return true;
-        }
-
-        @Override
-        public boolean onContextClick(MotionEvent e) {
-            Log.d(TAG, "onContextClick: \n" + e.toString());
-            return super.onContextClick(e);
         }
 
         @Override
@@ -271,9 +273,11 @@ public class Window {
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2,
                                float velocityX, float velocityY) {
-            x = e2.getX();
-            y = e2.getY();
-            scrollNumber ++;
+            for (int i = 0; i < e2.getPointerCount(); i++) {
+                x[e2.getPointerId(i)] = e2.getRawX(i);
+                y[e2.getPointerId(i)] = e2.getRawY(i);
+            }
+            scrollNumber++;
             lastScrollTime = e2.getEventTime();
             Log.d("GESTURE", "onFling: \n" + e1.toString() + "\n" + e2.toString() + "\nvelocity: (" + velocityX + ", " + velocityY + ")");
             return true;

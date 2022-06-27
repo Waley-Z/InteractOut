@@ -26,6 +26,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
 import java.io.IOException;
+import java.sql.Array;
+import java.util.Arrays;
 
 public class MyAccessibilityService extends AccessibilityService {
     public static MyAccessibilityService myAccessibilityService;
@@ -83,12 +85,12 @@ public class MyAccessibilityService extends AccessibilityService {
         myAccessibilityService = this;
         window = new Window(this);
         window.open();
-
+//        performPinch(0, 1000);
     }
     public void performSingleTap(float x, float y, long delay, long duration) {
         Path path = new Path();
         Log.d(TAG, "performClick: " + statusBarHeight);
-        path.moveTo(x, y + 2 * statusBarHeight);
+        path.moveTo(x, y);
         GestureDescription.StrokeDescription clickStroke = new GestureDescription.StrokeDescription(path, delay, duration);
         GestureDescription.Builder clickBuilder = new GestureDescription.Builder();
         clickBuilder.addStroke(clickStroke);
@@ -102,21 +104,27 @@ public class MyAccessibilityService extends AccessibilityService {
         return super.onGesture(gestureEvent);
     }
 
-    public void performSwipe(float x1, float y1, float x2, float y2, long delay, long duration) {
-        Path path = new Path();
-        Log.d(TAG, "performSwipe: " + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2);
-        path.moveTo(x1, y1 + 2 * statusBarHeight);
-        path.lineTo(x2, y2 + 2 * statusBarHeight);
-        GestureDescription.StrokeDescription swipeStroke = new GestureDescription.StrokeDescription(path, delay, duration);
+    public void performSwipe(int numFigure, float[] x1, float[] y1, float[] x2, float[] y2, long delay, long duration) {
+        Log.d(TAG, "performSwipe: \n" + numFigure);
+        Path[] path = new Path[numFigure];
+//        Log.d(TAG, "performSwipe: " + x1 + ' ' + y1 + ' ' + x2 + ' ' + y2);
+        GestureDescription.StrokeDescription[] swipeStroke = new GestureDescription.StrokeDescription[numFigure];
         GestureDescription.Builder swipeBuilder = new GestureDescription.Builder();
-        swipeBuilder.addStroke(swipeStroke);
+        for (int i = 0; i < numFigure; i++) {
+            path[i] = new Path();
+            path[i].moveTo(x1[i], y1[i]);
+            path[i].lineTo(x2[i], y2[i]);
+            Log.d(TAG, "performSwipe: \n" + x1[i] + ' ' + y1[i] + ' ' + x2[i] + ' ' + y2[i]);
+            swipeStroke[i] = new GestureDescription.StrokeDescription(path[i], delay, duration);
+            swipeBuilder.addStroke(swipeStroke[i]);
+        }
         boolean res = this.dispatchGesture(swipeBuilder.build(), null, null);
         Log.d(TAG, "performSwipe: " + res);
     }
 
     public void performDoubleTap(float x, float y, long delay, long duration, long interval) {
         Path path = new Path();
-        path.moveTo(x, y + 2 * statusBarHeight);
+        path.moveTo(x, y);
 //        path.lineTo(x + 1, y + 2 * statusBarHeight);
         GestureDescription.StrokeDescription clickStroke = new GestureDescription.StrokeDescription(path, delay, duration);
         GestureDescription.StrokeDescription clickStroke2 = new GestureDescription.StrokeDescription(path, delay + interval, duration);
@@ -125,6 +133,21 @@ public class MyAccessibilityService extends AccessibilityService {
         clickBuilder.addStroke(clickStroke2);
         boolean res = this.dispatchGesture(clickBuilder.build(), null, null);
         Log.d(TAG, "performDoubleTap: result 1 is " + res);
+    }
+
+    public void performPinch(long delay, long duration) {
+        Path path1 = new Path();
+        path1.moveTo(300, 1000);
+        path1.lineTo(300, 500);
+        Path path2 = new Path();
+        path2.moveTo(400, 1200);
+        path2.lineTo(400, 1700);
+        GestureDescription.StrokeDescription pinchStroke1 = new GestureDescription.StrokeDescription(path1, delay, duration);
+        GestureDescription.StrokeDescription pinchStroke2 = new GestureDescription.StrokeDescription(path2, delay, duration);
+        GestureDescription.Builder pinchBuilder = new GestureDescription.Builder();
+        pinchBuilder.addStroke(pinchStroke1).addStroke(pinchStroke2);
+        boolean res = this.dispatchGesture(pinchBuilder.build(), null, null);
+        Log.d(TAG, "performPinch: result is " + res);
     }
     public int getStatusBarWidth() {
         int result = 0;
