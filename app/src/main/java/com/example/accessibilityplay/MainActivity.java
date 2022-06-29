@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
         int MAXPROGRESS = 2000;
         tapDelay.setMax(MAXPROGRESS);
         tapDelay.setProgress(1);
+        tapDelayDisplay.setText(String.format(Locale.ENGLISH,"%d ms", tapDelay.getProgress()));
         tapDelay.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -77,6 +78,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
 
+            }
+        });
+        Switch disableArea = findViewById(R.id.disableAreaSwitch);
+        disableArea.setOnCheckedChangeListener((c, b) -> {
+            if (b) {
+                MyAccessibilityService.myAccessibilityService.window.activateDisablingWindow();
+            } else {
+                MyAccessibilityService.myAccessibilityService.window.deactivateDisablingWindow();
             }
         });
     }

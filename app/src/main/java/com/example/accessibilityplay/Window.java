@@ -15,17 +15,36 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import java.util.List;
+import java.util.Vector;
+
 public class Window {
-    private View overlay, listener;
-    private WindowManager windowManager;
-    private WindowManager.LayoutParams paramsTouchable, paramsListener;
+    private final View overlay;
+    private final View listener;
+    private final View disableArea;
+    private final WindowManager windowManager;
+    private final WindowManager.LayoutParams paramsTouchable;
+    private final WindowManager.LayoutParams paramsListener, paramDisableArea;
     private final static String TAG = "LALALA";
-    private ConditionVariable cv = new ConditionVariable(false);
-    private boolean isTouchable;
+    private final ConditionVariable cv = new ConditionVariable(false);
+    private boolean isTouchable, disableActive = false;
     private long downTime, lastScrollTime;
-    private float[] x = new float[10], y = new float[10], downX = new float[10], downY = new float[10];
+//    private float[] x = new float[10], y = new float[10], downX = new float[10], downY = new float[10];
+    private final Vector<Float>[] x = new Vector[10];
+    private final Vector<Float>[] y = new Vector[10];
     private int scrollNumber = 0, downNumber = 0, numFingers = 0;
-    private GestureDetector mDetector;
+    private final GestureDetector mDetector;
+    private final Handler handler = new Handler();
+
+    private final Runnable periodicToggle = new Runnable() {
+        @Override
+        public void run() {
+            Log.d(TAG, "run: \n" + disableActive);
+            disableActive = !disableActive;
+            toggleDisableArea(disableActive);
+            handler.postDelayed(periodicToggle, 5000);
+        }
+    };
 
 
     public Window(Context context) {
@@ -41,14 +60,23 @@ public class Window {
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
                         WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
                 PixelFormat.TRANSPARENT);
+        paramDisableArea = new WindowManager.LayoutParams(200, 200,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSPARENT);
         paramsListener.gravity = Gravity.TOP | Gravity.START;
         LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         overlay = layoutInflater.inflate(R.layout.overlay_window, null);
         // listener view is used for listening to the touch event during the temporary disable of long press
         listener = layoutInflater.inflate(R.layout.overlay_window, null);
+        disableArea = layoutInflater.inflate(R.layout.overlay_window, null);
         TextView textViewAction = (TextView) overlay.findViewById(R.id.textView2);
         TextView textViewDuration = (TextView) overlay.findViewById(R.id.textView3);
         final long[] duration = new long[1];
+        for (int i = 0; i < 10; i++) {
+            x[i] = new Vector<>(100);
+            y[i] = new Vector<>(100);
+        }
 
         // get the gesture detector
         mDetector = new GestureDetector(context, new MyGestureListener());
@@ -71,13 +99,17 @@ public class Window {
                 if (action.equals("ACTION_DOWN") || action.equals("ACTION_POINTER_DOWN")) {
                     downTime = event.getDownTime();
                     for (int i = 0; i < numFingers; i++) {
-                        downX[event.getPointerId(i)] = event.getRawX(i);
-                        downY[event.getPointerId(i)] = event.getRawY(i);
+                        x[i].removeAllElements();
+                        y[i].removeAllElements();
+                    }
+                    for (int i = 0; i < event.getPointerCount(); i++) {
+                        x[event.getPointerId(i)].add(event.getRawX(i));
+                        y[event.getPointerId(i)].add(event.getRawY(i));
                     }
                 } else if (action.equals("ACTION_UP") && scrollNumber > 0 && lastScrollTime > downTime) {
                     changeToNotTouchable(overlay, MyAccessibilityService.tapDelay);
                     MyAccessibilityService.myAccessibilityService.performSwipe(
-                            numFingers, downX, downY,
+                            numFingers,
                             x,
                             y,
                             MyAccessibilityService.tapDelay + 50, lastScrollTime - downTime);
@@ -124,21 +156,41 @@ public class Window {
     }
 
     public void open() {
-//        windowManager.addView(listener, paramsListener);
         if (overlay.getWindowToken() == null && overlay.getParent() == null) {
             windowManager.addView(overlay, paramsTouchable);
             isTouchable = true;
             Log.d("Window", "Added");
         }
+    }
 
+    public void activateDisablingWindow() {
+        windowManager.addView(disableArea, paramDisableArea);
+        disableActive = true;
+        periodicToggle.run();
+    }
+
+    public void deactivateDisablingWindow() {
+        try {
+            handler.removeCallbacks(periodicToggle);
+            windowManager.removeView(disableArea);
+            disableArea.invalidate();
+            disableActive = false;
+        } catch (IllegalArgumentException ignore){
+
+        }
     }
 
     public void close() {
-        windowManager.removeView(overlay);
-        overlay.invalidate();
-        ViewGroup viewGroup = (ViewGroup) overlay.getParent();
-        if (viewGroup != null) {
-            viewGroup.removeAllViews();
+        try {
+            deactivateDisablingWindow();
+            windowManager.removeView(overlay);
+            overlay.invalidate();
+            ViewGroup viewGroup = (ViewGroup) overlay.getParent();
+            if (viewGroup != null) {
+                viewGroup.removeAllViews();
+            }
+        } catch (IllegalArgumentException ignore){
+
         }
     }
 
@@ -150,7 +202,11 @@ public class Window {
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    windowManager.removeView(view);
+                    try {
+                        windowManager.removeView(view);
+                    } catch (IllegalArgumentException ignore) {
+
+                    }
                 }
             }, delay);
         }
@@ -223,8 +279,8 @@ public class Window {
             scrollNumber++;
             lastScrollTime = e2.getEventTime();
             for (int i = 0; i < e2.getPointerCount(); i++) {
-                x[e2.getPointerId(i)] = e2.getRawX(i);
-                y[e2.getPointerId(i)] = e2.getRawY(i);
+                x[e2.getPointerId(i)].add(e2.getRawX(i));
+                y[e2.getPointerId(i)].add(e2.getRawY(i));
             }
             Log.d("GESTURE", "onScroll: \n" + e1.toString() + "\n" + e2.toString() + "\ndistance: (" + distanceX + ", " + distanceY + ")");
             return true;
@@ -253,13 +309,48 @@ public class Window {
         public boolean onFling(MotionEvent e1, MotionEvent e2,
                                float velocityX, float velocityY) {
             for (int i = 0; i < e2.getPointerCount(); i++) {
-                x[e2.getPointerId(i)] = e2.getRawX(i);
-                y[e2.getPointerId(i)] = e2.getRawY(i);
+                x[e2.getPointerId(i)].add(e2.getRawX(i));
+                y[e2.getPointerId(i)].add(e2.getRawY(i));
             }
             scrollNumber++;
             lastScrollTime = e2.getEventTime();
             Log.d("GESTURE", "onFling: \n" + e1.toString() + "\n" + e2.toString() + "\nvelocity: (" + velocityX + ", " + velocityY + ")");
             return true;
         }
+    }
+
+    private void toggleDisableArea(boolean b) {
+        if (b) {
+            disableArea.setBackgroundColor(Color.parseColor("#aaff0000"));
+            disableArea.setOnTouchListener(null);
+        } else {
+            disableArea.setBackgroundColor(Color.parseColor("#aa00ff00"));
+            disableArea.setOnTouchListener(new View.OnTouchListener() {
+                private int initialX;
+                private int initialY;
+                private float initialTouchX;
+                private float initialTouchY;
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    Log.d("TAG", "onTouch: \n" + event);
+                    switch (event.getAction()) {
+                        case MotionEvent.ACTION_DOWN:
+                            initialX = paramDisableArea.x;
+                            initialY = paramDisableArea.y;
+                            initialTouchX = event.getRawX();
+                            initialTouchY = event.getRawY();
+                            return true;
+                        case MotionEvent.ACTION_MOVE:
+                            paramDisableArea.x = initialX + (int) (event.getRawX() - initialTouchX);
+                            paramDisableArea.y = initialY + (int) (event.getRawY() - initialTouchY);
+                            windowManager.updateViewLayout(disableArea, paramDisableArea);
+                            return true;
+                        case MotionEvent.ACTION_UP:
+                    }
+                    return true;
+                }
+            });
+        }
+        windowManager.updateViewLayout(disableArea, paramDisableArea);
     }
 }

@@ -31,16 +31,18 @@
         android:id="@+id/button2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="100dp"
-        android:layout_marginTop="100dp"
+        android:layout_marginTop="20dp"
         android:text="@string/tap_to_1"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/button" />
 
     <Switch
         android:id="@+id/swipeDirectionSwtch"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="30dp"
+        android:layout_marginEnd="30dp"
         android:layout_marginBottom="20dp"
         android:minHeight="48dp"
         android:text="@string/revert_swipe_direction"
@@ -55,7 +57,7 @@
         android:layout_marginStart="32dp"
         android:layout_marginEnd="32dp"
         android:layout_marginBottom="20dp"
-        app:layout_constraintBottom_toTopOf="@+id/swipeDirectionSwtch"
+        app:layout_constraintBottom_toTopOf="@+id/disableAreaSwitch"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -77,5 +79,18 @@
         android:layout_marginBottom="10dp"
         app:layout_constraintBottom_toTopOf="@+id/tapDelayBar"
         app:layout_constraintEnd_toEndOf="parent" />
+
+    <Switch
+        android:id="@+id/disableAreaSwitch"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="30dp"
+        android:layout_marginEnd="30dp"
+        android:layout_marginBottom="20dp"
+        android:minHeight="48dp"
+        android:text="Activate Disabling Window"
+        app:layout_constraintBottom_toTopOf="@+id/swipeDirectionSwtch"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

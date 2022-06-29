@@ -28,13 +28,15 @@ import androidx.annotation.RequiresApi;
 import java.io.IOException;
 import java.sql.Array;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Vector;
 
 public class MyAccessibilityService extends AccessibilityService {
     public static MyAccessibilityService myAccessibilityService;
     public static boolean revertDirection = false;
     public static long tapDelay = 0;
     final static String TAG = "LALALA";
-    private Window window;
+    public Window window;
     private int statusBarHeight;
 
     @Override
@@ -60,12 +62,7 @@ public class MyAccessibilityService extends AccessibilityService {
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "onUnbind: unbind");
-        try {
-            window.close();
-        } catch (IllegalArgumentException ignore){
-
-        }
-
+        window.close();
         return super.onUnbind(intent);
     }
 
@@ -106,7 +103,7 @@ public class MyAccessibilityService extends AccessibilityService {
         return super.onGesture(gestureEvent);
     }
 
-    public void performSwipe(int numFigure, float[] x1, float[] y1, float[] x2, float[] y2, long delay, long duration) {
+    public void performSwipe(int numFigure, Vector<Float>[] x, Vector<Float>[] y, long delay, long duration) {
         Log.d(TAG, "performSwipe: \n" + numFigure);
         Path[] path = new Path[numFigure];
         GestureDescription.StrokeDescription[] swipeStroke = new GestureDescription.StrokeDescription[numFigure];
@@ -114,13 +111,14 @@ public class MyAccessibilityService extends AccessibilityService {
         for (int i = 0; i < numFigure; i++) {
             path[i] = new Path();
             if (revertDirection) {
-                path[i].moveTo(x2[i], y2[i]);
-                path[i].lineTo(x1[i], y1[i]);
-            } else {
-                path[i].moveTo(x1[i], y1[i]);
-                path[i].lineTo(x2[i], y2[i]);
+                Collections.reverse(x[i]);
+                Collections.reverse(y[i]);
             }
-            Log.d(TAG, "performSwipe: \n" + x1[i] + ' ' + y1[i] + ' ' + x2[i] + ' ' + y2[i]);
+            path[i].moveTo(x[i].firstElement(), y[i].firstElement());
+            for (int j = 1; j < x[i].size(); j++) {
+                path[i].lineTo(x[i].get(j), y[i].get(j));
+            }
+            Log.d(TAG, "performSwipe: \n");
             swipeStroke[i] = new GestureDescription.StrokeDescription(path[i], delay, duration);
             swipeBuilder.addStroke(swipeStroke[i]);
         }
@@ -141,20 +139,6 @@ public class MyAccessibilityService extends AccessibilityService {
         Log.d(TAG, "performDoubleTap: result 1 is " + res);
     }
 
-    public void performPinch(long delay, long duration) {
-        Path path1 = new Path();
-        path1.moveTo(300, 1000);
-        path1.lineTo(300, 500);
-        Path path2 = new Path();
-        path2.moveTo(400, 1200);
-        path2.lineTo(400, 1700);
-        GestureDescription.StrokeDescription pinchStroke1 = new GestureDescription.StrokeDescription(path1, delay, duration);
-        GestureDescription.StrokeDescription pinchStroke2 = new GestureDescription.StrokeDescription(path2, delay, duration);
-        GestureDescription.Builder pinchBuilder = new GestureDescription.Builder();
-        pinchBuilder.addStroke(pinchStroke1).addStroke(pinchStroke2);
-        boolean res = this.dispatchGesture(pinchBuilder.build(), null, null);
-        Log.d(TAG, "performPinch: result is " + res);
-    }
     public int getStatusBarWidth() {
         int result = 0;
         int resourceId = this.getResources().getIdentifier("status_bar_height", "dimen", "android");
