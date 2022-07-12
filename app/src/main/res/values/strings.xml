@@ -6,4 +6,6 @@
     <string name="revert_swipe_direction">Revert Swipe Direction</string>
     <string name="tap_delay">Tap Delay</string>
     <string name="more_out_of_the_phone">More out of the phone</string>
+    <string name="scroll_ratio">Scroll Ratio</string>
+    <string name="fingers_to_swipe">Fingers to Swipe</string>
 </resources>

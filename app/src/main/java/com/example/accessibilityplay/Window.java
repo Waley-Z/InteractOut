@@ -1,12 +1,14 @@
 package com.example.accessibilityplay;
 
+import static com.example.accessibilityplay.MyAccessibilityService.scrollRatio;
+
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.os.ConditionVariable;
 import android.os.Handler;
 import android.util.Log;
-import android.view.GestureDetector;
+//import com.example.accessibilityplay.GestureDetector;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -16,6 +18,7 @@ import android.view.WindowManager;
 import android.widget.TextView;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Vector;
 
 public class Window {
@@ -25,16 +28,19 @@ public class Window {
     private final WindowManager windowManager;
     private final WindowManager.LayoutParams paramsTouchable;
     private final WindowManager.LayoutParams paramsListener, paramDisableArea;
-    private final static String TAG = "LALALA";
+    private final static String TAG = "Window.java";
     private final ConditionVariable cv = new ConditionVariable(false);
     private boolean isTouchable, disableActive = false;
-    private long downTime, lastScrollTime;
-//    private float[] x = new float[10], y = new float[10], downX = new float[10], downY = new float[10];
+    private long downTime, lastScrollTime, upTime;
     private final Vector<Float>[] x = new Vector[10];
     private final Vector<Float>[] y = new Vector[10];
     private int scrollNumber = 0, downNumber = 0, numFingers = 0;
     private final GestureDetector mDetector;
     private final Handler handler = new Handler();
+    private boolean isTapTooShort = false;
+
+
+
 
     private final Runnable periodicToggle = new Runnable() {
         @Override
@@ -92,10 +98,18 @@ public class Window {
                 // a return value of false means the detector didn't
                 // recognize the event
                 String action = MotionEvent.actionToString(event.getAction());
-                Log.d(TAG, "onTouch: \n" + event.toString());
+//                Log.d(TAG, "onTouch: \n" + event.toString());
                 action = action.split("\\(")[0];
-                Log.d(TAG, "onTouch: \n" + action + ' ' + event.getPointerCount());
+//                Log.d(TAG, "onTouch: \n" + action + ' ' + event.getPointerCount());
                 numFingers = Math.max(event.getPointerCount(), numFingers);
+                if (action.equals("ACTION_UP") && event.getEventTime() - event.getDownTime() < GestureDetector.TAP_THRESHOLD) {
+                    textViewDuration.setText(String.format(Locale.ENGLISH, "Tap duration too short (%d ms)", event.getEventTime() - event.getDownTime()));
+                    isTapTooShort = true;
+                    return false;
+                } else {
+                    upTime = event.getEventTime();
+                    isTapTooShort = false;
+                }
                 if (action.equals("ACTION_DOWN") || action.equals("ACTION_POINTER_DOWN")) {
                     downTime = event.getDownTime();
                     for (int i = 0; i < numFingers; i++) {
@@ -106,14 +120,16 @@ public class Window {
                         x[event.getPointerId(i)].add(event.getRawX(i));
                         y[event.getPointerId(i)].add(event.getRawY(i));
                     }
-                } else if (action.equals("ACTION_UP") && scrollNumber > 0 && lastScrollTime > downTime) {
+                } else if (action.equals("ACTION_UP") && scrollNumber > 0 && lastScrollTime > downTime && numFingers >= MyAccessibilityService.swipeFingers) {
+                    // end of scroll
                     changeToNotTouchable(overlay, MyAccessibilityService.tapDelay);
+                    cv.block(100);
                     MyAccessibilityService.myAccessibilityService.performSwipe(
                             numFingers,
                             x,
                             y,
-                            MyAccessibilityService.tapDelay + 50, lastScrollTime - downTime);
-                    changeToTouchable(overlay, paramsTouchable, lastScrollTime - downTime + MyAccessibilityService.tapDelay);
+                            MyAccessibilityService.tapDelay + 50, (long) ((lastScrollTime - downTime) * scrollRatio));
+                    changeToTouchable(overlay, paramsTouchable, (long) ((lastScrollTime - downTime) * scrollRatio + MyAccessibilityService.tapDelay));
                     scrollNumber = 0;
                     numFingers = 0;
                 }
@@ -145,7 +161,7 @@ public class Window {
                     downNumber = 0;
                     changeToNotTouchable(listener, 0);
                     changeToTouchable(overlay, paramsTouchable, 0);
-                    Log.d(TAG, "onTouch: change back");
+//                    Log.d(TAG, "onTouch: change back");
                 }
                 return false;
             }
@@ -159,7 +175,7 @@ public class Window {
         if (overlay.getWindowToken() == null && overlay.getParent() == null) {
             windowManager.addView(overlay, paramsTouchable);
             isTouchable = true;
-            Log.d("Window", "Added");
+//            Log.d("Window", "Added");
         }
     }
 
@@ -221,7 +237,7 @@ public class Window {
                 public void run() {
                     try {
                         windowManager.addView(view, params);
-                    } catch (WindowManager.BadTokenException | IllegalArgumentException ignore) {
+                    } catch (WindowManager.BadTokenException | IllegalArgumentException | IllegalStateException ignore) {
 
                     }
                 }
@@ -247,13 +263,14 @@ public class Window {
             Log.i("GESTURE", "onSingleTapConfirmed: \n" + e.toString());
             changeToNotTouchable(overlay, MyAccessibilityService.tapDelay);
             MyAccessibilityService.myAccessibilityService.performSingleTap(
-                    e.getRawX(), e.getRawY(), MyAccessibilityService.tapDelay + 50, 50);
+                    e.getRawX(), e.getRawY(), MyAccessibilityService.tapDelay + 50, upTime - downTime - GestureDetector.TAP_THRESHOLD);
             changeToTouchable(overlay, paramsTouchable, MyAccessibilityService.tapDelay + 150);
             return true;
         }
 
         @Override
         public void onLongPress(MotionEvent e) {
+            if (isTapTooShort) return;
             Log.i("GESTURE", "onLongPress: \n" + e.toString());
             cv.block(2000);
             changeToNotTouchable(overlay, 0);
@@ -282,27 +299,8 @@ public class Window {
                 x[e2.getPointerId(i)].add(e2.getRawX(i));
                 y[e2.getPointerId(i)].add(e2.getRawY(i));
             }
-            Log.d("GESTURE", "onScroll: \n" + e1.toString() + "\n" + e2.toString() + "\ndistance: (" + distanceX + ", " + distanceY + ")");
+//            Log.d("GESTURE", "onScroll: \n" + e1.toString() + "\n" + e2.toString() + "\ndistance: (" + distanceX + ", " + distanceY + ")");
             return true;
-        }
-
-        @Override
-        public boolean onDoubleTapEvent(MotionEvent e) {
-            Log.d(TAG, "onDoubleTapEvent: \n" + e.toString());
-            return true;
-        }
-
-
-        @Override
-        public void onShowPress(MotionEvent e) {
-            Log.d(TAG, "onShowPress: \n" + e);
-            super.onShowPress(e);
-        }
-
-        @Override
-        public boolean onSingleTapUp(MotionEvent e) {
-            Log.d(TAG, "onSingleTapUp: \n" + e.toString());
-            return super.onSingleTapUp(e);
         }
 
         @Override
@@ -314,7 +312,7 @@ public class Window {
             }
             scrollNumber++;
             lastScrollTime = e2.getEventTime();
-            Log.d("GESTURE", "onFling: \n" + e1.toString() + "\n" + e2.toString() + "\nvelocity: (" + velocityX + ", " + velocityY + ")");
+//            Log.d("GESTURE", "onFling: \n" + e1.toString() + "\n" + e2.toString() + "\nvelocity: (" + velocityX + ", " + velocityY + ")");
             return true;
         }
     }

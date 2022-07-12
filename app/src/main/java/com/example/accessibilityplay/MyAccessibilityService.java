@@ -21,11 +21,14 @@ import android.view.ViewConfiguration;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Button;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.Array;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,20 +37,53 @@ import java.util.Vector;
 public class MyAccessibilityService extends AccessibilityService {
     public static MyAccessibilityService myAccessibilityService;
     public static boolean revertDirection = false;
-    public static long tapDelay = 0;
-    final static String TAG = "LALALA";
+    public static int tapDelay = 0;
+    // 50 to 100 ms time is good for prolong
+    public static int tapProlong = 0;
+    public static float scrollRatio = 1;
+    public static int swipeFingers = 1;
     public Window window;
-    private int statusBarHeight;
+
+    private final static String TAG = "MyAccessibilityService.java";
+    private boolean isKeyboardOn = false;
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
         AccessibilityNodeInfo accessibilityNodeInfo = accessibilityEvent.getSource();
-        if (AccessibilityEvent.eventTypeToString(accessibilityEvent.getEventType()).equals("TYPE_WINDOW_CONTENT_CHANGED")) {
+//        boolean checkResult = checkKeyboard();
+//        if (!isKeyboardOn && checkResult) {
+//            isKeyboardOn = true;
+//            window.close();
+//        } else if (isKeyboardOn && !checkResult) {
+//            isKeyboardOn = false;
+//            window.open();
+//        }
+        if (accessibilityEvent.getPackageName() == null) {
+//            Log.d(TAG, "onAccessibilityEvent: NULL");
             return;
         }
+        if (accessibilityEvent.getPackageName().equals("com.google.android.inputmethod.latin")) {
+            String s = (String) accessibilityEvent.getContentDescription();
+            if (s == null) {
+                if (isKeyboardOn) {
+                    window.open();
+                } else {
+                    window.close();
+                }
+                isKeyboardOn = !isKeyboardOn;
+                return;
+            }
+            if (s.contains("Showing") || s.length() == 1) {
+                isKeyboardOn = true;
+                window.close();
+            } else if (s.contains("hidden")) {
+                isKeyboardOn = false;
+                window.open();
+            }
+            Toast.makeText(this, s, Toast.LENGTH_SHORT).show();
+        }
+
 //        Log.d(TAG, "onAccessibilityEvent: \n" + accessibilityEvent);
-//        AccessibilityNodeInfo rootWindow = getRootInActiveWindow();
-//        Log.d(TAG, "onServiceConnected: \n" + rootWindow);
     }
 
     public MyAccessibilityService() {
@@ -66,29 +102,28 @@ public class MyAccessibilityService extends AccessibilityService {
         return super.onUnbind(intent);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
         int result = getStatusBarWidth();
-        Configurations.configuration.setStatusBarHeight(result);
         Log.d(TAG, "onServiceConnected: " + result);
-        statusBarHeight = result;
 
         AccessibilityServiceInfo info = new AccessibilityServiceInfo();
         info.eventTypes = AccessibilityEvent.TYPES_ALL_MASK;
-        info.feedbackType = AccessibilityServiceInfo.FEEDBACK_HAPTIC;
+//                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED |
+//                        AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED |
+//                        AccessibilityEvent.TYPE_WINDOWS_CHANGED |
+//                        AccessibilityEvent.TYPE_VIEW_SCROLLED;
+        info.feedbackType = AccessibilityServiceInfo.FEEDBACK_ALL_MASK;
         info.notificationTimeout = 10;
         this.setServiceInfo(info);
         Log.d(TAG, "onServiceConnected: Service connected");
         myAccessibilityService = this;
         window = new Window(this);
         window.open();
-//        performPinch(0, 1000);
     }
     public void performSingleTap(float x, float y, long delay, long duration) {
         Path path = new Path();
-        Log.d(TAG, "performClick: " + statusBarHeight);
         path.moveTo(x, y);
         GestureDescription.StrokeDescription clickStroke = new GestureDescription.StrokeDescription(path, delay, duration);
         GestureDescription.Builder clickBuilder = new GestureDescription.Builder();
@@ -97,14 +132,12 @@ public class MyAccessibilityService extends AccessibilityService {
         Log.d(TAG, "performClick: result is " + res);
     }
 
-    @Override
-    public boolean onGesture(@NonNull AccessibilityGestureEvent gestureEvent) {
-        Log.d(TAG, "onGesture: \n" + gestureEvent);
-        return super.onGesture(gestureEvent);
-    }
 
     public void performSwipe(int numFigure, Vector<Float>[] x, Vector<Float>[] y, long delay, long duration) {
-        Log.d(TAG, "performSwipe: \n" + numFigure);
+        if (x.length == 0 || y.length == 0) {
+            return;
+        }
+//        Log.d(TAG, "performSwipe: \n" + numFigure);
         Path[] path = new Path[numFigure];
         GestureDescription.StrokeDescription[] swipeStroke = new GestureDescription.StrokeDescription[numFigure];
         GestureDescription.Builder swipeBuilder = new GestureDescription.Builder();
@@ -118,25 +151,24 @@ public class MyAccessibilityService extends AccessibilityService {
             for (int j = 1; j < x[i].size(); j++) {
                 path[i].lineTo(x[i].get(j), y[i].get(j));
             }
-            Log.d(TAG, "performSwipe: \n");
+//            Log.d(TAG, "performSwipe: \n");
             swipeStroke[i] = new GestureDescription.StrokeDescription(path[i], delay, duration);
             swipeBuilder.addStroke(swipeStroke[i]);
         }
         boolean res = this.dispatchGesture(swipeBuilder.build(), null, null);
-        Log.d(TAG, "performSwipe: " + res);
+//        Log.d(TAG, "performSwipe: " + res);
     }
 
     public void performDoubleTap(float x, float y, long delay, long duration, long interval) {
         Path path = new Path();
         path.moveTo(x, y);
-//        path.lineTo(x + 1, y + 2 * statusBarHeight);
         GestureDescription.StrokeDescription clickStroke = new GestureDescription.StrokeDescription(path, delay, duration);
         GestureDescription.StrokeDescription clickStroke2 = new GestureDescription.StrokeDescription(path, delay + interval, duration);
         GestureDescription.Builder clickBuilder = new GestureDescription.Builder();
         clickBuilder.addStroke(clickStroke);
         clickBuilder.addStroke(clickStroke2);
         boolean res = this.dispatchGesture(clickBuilder.build(), null, null);
-        Log.d(TAG, "performDoubleTap: result 1 is " + res);
+//        Log.d(TAG, "performDoubleTap: result 1 is " + res);
     }
 
     public int getStatusBarWidth() {
@@ -147,4 +179,6 @@ public class MyAccessibilityService extends AccessibilityService {
         }
         return result;
     }
+
+
 }
