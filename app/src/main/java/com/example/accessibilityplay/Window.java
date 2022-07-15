@@ -16,6 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.List;
 import java.util.Locale;
@@ -54,6 +55,7 @@ public class Window {
 
 
     public Window(Context context) {
+        Log.d(TAG, "Window: Window Created");
         paramsTouchable = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS |
@@ -102,8 +104,10 @@ public class Window {
                 action = action.split("\\(")[0];
 //                Log.d(TAG, "onTouch: \n" + action + ' ' + event.getPointerCount());
                 numFingers = Math.max(event.getPointerCount(), numFingers);
-                if (action.equals("ACTION_UP") && event.getEventTime() - event.getDownTime() < GestureDetector.TAP_THRESHOLD) {
-                    textViewDuration.setText(String.format(Locale.ENGLISH, "Tap duration too short (%d ms)", event.getEventTime() - event.getDownTime()));
+                if (action.equals("ACTION_UP") && scrollNumber == 1 && event.getEventTime() - event.getDownTime() < GestureDetector.TAP_THRESHOLD) {
+                    Log.d(TAG, "onTouch: \n" + scrollNumber);
+                    textViewDuration.setText(String.format(Locale.ENGLISH, "Tap duration too short (%d/%d ms)", event.getEventTime() - event.getDownTime(), GestureDetector.TAP_THRESHOLD));
+                    Toast.makeText(context, String.format(Locale.ENGLISH, "Tap duration too short (%d/%d ms)", event.getEventTime() - event.getDownTime(), GestureDetector.TAP_THRESHOLD), Toast.LENGTH_SHORT).show();
                     isTapTooShort = true;
                     return false;
                 } else {
@@ -175,7 +179,8 @@ public class Window {
         if (overlay.getWindowToken() == null && overlay.getParent() == null) {
             windowManager.addView(overlay, paramsTouchable);
             isTouchable = true;
-//            Log.d("Window", "Added");
+            Log.d("Window", "Added");
+
         }
     }
 
@@ -248,6 +253,7 @@ public class Window {
     // In the SimpleOnGestureListener subclass you should override
     // onDown and any other gesture that you want to detect.
     public class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
+        TextView detectedEvent = overlay.findViewById(R.id.textView4);
 
         @Override
         public boolean onDown(MotionEvent event) {
@@ -260,6 +266,7 @@ public class Window {
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
+            detectedEvent.setText("Single tap");
             Log.i("GESTURE", "onSingleTapConfirmed: \n" + e.toString());
             changeToNotTouchable(overlay, MyAccessibilityService.tapDelay);
             MyAccessibilityService.myAccessibilityService.performSingleTap(
@@ -271,6 +278,7 @@ public class Window {
         @Override
         public void onLongPress(MotionEvent e) {
             if (isTapTooShort) return;
+            detectedEvent.setText("Long press");
             Log.i("GESTURE", "onLongPress: \n" + e.toString());
             cv.block(2000);
             changeToNotTouchable(overlay, 0);
@@ -281,6 +289,7 @@ public class Window {
         public boolean onDoubleTap(MotionEvent e) {
             // Can be more precise simulation, not just using fixed one.
             Log.i("GESTURE", "onDoubleTap: \n" + e.toString());
+            detectedEvent.setText("Double tap");
             // block to let the finger leave the screen. If the figure do not leave the screen, the simulated double tap does not work
             cv.block(200);
             changeToNotTouchable(overlay, MyAccessibilityService.tapDelay);
@@ -295,6 +304,7 @@ public class Window {
                                 float distanceX, float distanceY) {
             scrollNumber++;
             lastScrollTime = e2.getEventTime();
+            detectedEvent.setText("Scroll");
             for (int i = 0; i < e2.getPointerCount(); i++) {
                 x[e2.getPointerId(i)].add(e2.getRawX(i));
                 y[e2.getPointerId(i)].add(e2.getRawY(i));
@@ -310,6 +320,7 @@ public class Window {
                 x[e2.getPointerId(i)].add(e2.getRawX(i));
                 y[e2.getPointerId(i)].add(e2.getRawY(i));
             }
+            detectedEvent.setText("Fling");
             scrollNumber++;
             lastScrollTime = e2.getEventTime();
 //            Log.d("GESTURE", "onFling: \n" + e1.toString() + "\n" + e2.toString() + "\nvelocity: (" + velocityX + ", " + velocityY + ")");

@@ -20,6 +20,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
@@ -309,6 +310,7 @@ public class GestureDetector {
                     // If the user's finger is still down, do not count it as a tap
                     if (mDoubleTapListener != null) {
                         if (!mStillDown) {
+                            Log.d(TAG, "handleMessage: single tap triggered");
                             mDoubleTapListener.onSingleTapConfirmed(mCurrentDownEvent);
                         } else {
                             mDeferConfirmSingleTap = true;
@@ -675,9 +677,16 @@ public class GestureDetector {
                         mLastFocusX = focusX;
                         mLastFocusY = focusY;
                         mAlwaysInTapRegion = false;
-                        mHandler.removeMessages(TAP);
-                        mHandler.removeMessages(SHOW_PRESS);
-                        mHandler.removeMessages(LONG_PRESS);
+                        Log.d(TAG, "onTouchEvent: remove");
+                        mHandler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                mHandler.removeMessages(TAP);
+                                mHandler.removeMessages(SHOW_PRESS);
+                                mHandler.removeMessages(LONG_PRESS);
+                            }
+                        }, TAP_THRESHOLD);
+
                     }
                     int doubleTapSlopSquare = mDoubleTapTouchSlopSquare;
                     if (distance > doubleTapSlopSquare) {
@@ -711,10 +720,9 @@ public class GestureDetector {
                     mHandler.removeMessages(TAP);
                     mInLongPress = false;
                 } else if (mAlwaysInTapRegion && !mIgnoreNextUpEvent) {
-                    recordGestureClassification(
-                            TOUCH_GESTURE_CLASSIFIED__CLASSIFICATION__SINGLE_TAP);
                     handled = mListener.onSingleTapUp(ev);
                     if (mDeferConfirmSingleTap && mDoubleTapListener != null) {
+                        Log.d(TAG, "onTouchEvent: confirmed");
                         mDoubleTapListener.onSingleTapConfirmed(ev);
                     }
                 } else if (!mIgnoreNextUpEvent) {
@@ -725,10 +733,10 @@ public class GestureDetector {
                     velocityTracker.computeCurrentVelocity(1000, mMaximumFlingVelocity);
                     final float velocityY = velocityTracker.getYVelocity(pointerId);
                     final float velocityX = velocityTracker.getXVelocity(pointerId);
-
                     if ((Math.abs(velocityY) > mMinimumFlingVelocity)
                             || (Math.abs(velocityX) > mMinimumFlingVelocity)) {
                         handled = mListener.onFling(mCurrentDownEvent, ev, velocityX, velocityY);
+                    Log.d(TAG, "onTouchEvent: fling detected");
                     }
                 }
                 if (mPreviousUpEvent != null) {

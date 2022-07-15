@@ -7,15 +7,18 @@ import android.accessibilityservice.AccessibilityServiceInfo;
 import android.accessibilityservice.GestureDescription;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Binder;
 import android.os.Build;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.Display;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.accessibility.AccessibilityEvent;
@@ -32,6 +35,8 @@ import java.io.InputStreamReader;
 import java.sql.Array;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.NoSuchElementException;
+import java.util.ResourceBundle;
 import java.util.Vector;
 
 public class MyAccessibilityService extends AccessibilityService {
@@ -39,9 +44,11 @@ public class MyAccessibilityService extends AccessibilityService {
     public static boolean revertDirection = false;
     public static int tapDelay = 0;
     // 50 to 100 ms time is good for prolong
-    public static int tapProlong = 0;
-    public static float scrollRatio = 1;
     public static int swipeFingers = 1;
+    public static int xOffset = 0;
+    public static int yOffset = 0;
+    public static int screenWidth = 1080, screenHeight = 2400;
+    public static float scrollRatio = 1;
     public Window window;
 
     private final static String TAG = "MyAccessibilityService.java";
@@ -105,9 +112,6 @@ public class MyAccessibilityService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
-        int result = getStatusBarWidth();
-        Log.d(TAG, "onServiceConnected: " + result);
-
         AccessibilityServiceInfo info = new AccessibilityServiceInfo();
         info.eventTypes = AccessibilityEvent.TYPES_ALL_MASK;
 //                AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED |
@@ -117,12 +121,21 @@ public class MyAccessibilityService extends AccessibilityService {
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_ALL_MASK;
         info.notificationTimeout = 10;
         this.setServiceInfo(info);
+        Log.d(TAG, "onServiceConnected: \n" + screenWidth + ' ' + screenHeight);
         Log.d(TAG, "onServiceConnected: Service connected");
         myAccessibilityService = this;
         window = new Window(this);
         window.open();
+        Toast.makeText(this, "Overlay window launched", Toast.LENGTH_SHORT).show();
     }
     public void performSingleTap(float x, float y, long delay, long duration) {
+        x = x + xOffset;
+        y = y + yOffset;
+        Log.d(TAG, "performSingleTap: \n" + x + ' ' + y);
+        if (x < 0 || y < 0) {
+            Toast.makeText(this, "Offset tap out of bound", Toast.LENGTH_SHORT).show();
+            return;
+        }
         Path path = new Path();
         path.moveTo(x, y);
         GestureDescription.StrokeDescription clickStroke = new GestureDescription.StrokeDescription(path, delay, duration);
@@ -147,9 +160,21 @@ public class MyAccessibilityService extends AccessibilityService {
                 Collections.reverse(x[i]);
                 Collections.reverse(y[i]);
             }
-            path[i].moveTo(x[i].firstElement(), y[i].firstElement());
+            try {
+                if (x[i].firstElement() + xOffset < 0 || y[i].firstElement() + yOffset < 0) {
+                    Toast.makeText(this, "Offset swipe out of bound", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            } catch (NoSuchElementException e) {
+                return;
+            }
+            path[i].moveTo(x[i].firstElement() + xOffset, y[i].firstElement() + yOffset);
             for (int j = 1; j < x[i].size(); j++) {
-                path[i].lineTo(x[i].get(j), y[i].get(j));
+                if (x[i].get(j) + xOffset < 0 || y[i].get(j) + yOffset < 0) {
+                    Toast.makeText(this, "Offset swipe out of bound", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                path[i].lineTo(x[i].get(j) + xOffset, y[i].get(j) + yOffset);
             }
 //            Log.d(TAG, "performSwipe: \n");
             swipeStroke[i] = new GestureDescription.StrokeDescription(path[i], delay, duration);
@@ -160,6 +185,12 @@ public class MyAccessibilityService extends AccessibilityService {
     }
 
     public void performDoubleTap(float x, float y, long delay, long duration, long interval) {
+        x = x + xOffset;
+        y = y + yOffset;
+        if (x < 0 || y < 0) {
+            Toast.makeText(this, "Offset double tap out of bound", Toast.LENGTH_SHORT).show();
+            return;
+        }
         Path path = new Path();
         path.moveTo(x, y);
         GestureDescription.StrokeDescription clickStroke = new GestureDescription.StrokeDescription(path, delay, duration);
@@ -171,14 +202,6 @@ public class MyAccessibilityService extends AccessibilityService {
 //        Log.d(TAG, "performDoubleTap: result 1 is " + res);
     }
 
-    public int getStatusBarWidth() {
-        int result = 0;
-        int resourceId = this.getResources().getIdentifier("status_bar_height", "dimen", "android");
-        if (resourceId > 0) {
-            result = this.getResources().getDimensionPixelSize(resourceId);
-        }
-        return result;
-    }
 
 
 }

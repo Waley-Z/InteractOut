@@ -1,12 +1,18 @@
 package com.example.accessibilityplay;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.graphics.Point;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
+import android.view.PointerIcon;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.widget.Button;
@@ -18,7 +24,7 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
-    final static String TAG = "MainActivity";
+    private final static String TAG = "MainActivity";
     private int count = 0;
     private static final float[] scrollRatioValues = {5, 4, 3, 2, 1, 1f/2f, 1f/3f, 1f/4f, 1f/5f};
 
@@ -39,6 +45,13 @@ public class MainActivity extends AppCompatActivity {
         if (status.equals("0")) {
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
         }
+
+        Display display = getWindowManager().getDefaultDisplay();
+        Point point = new Point();
+        display.getRealSize(point);
+        Log.d(TAG, "onCreate: \n" + point.x + ' ' + point.y);
+        MyAccessibilityService.screenWidth = point.x;
+        MyAccessibilityService.screenHeight = point.y;
         // disable button
         Button btn = findViewById(R.id.button);
         btn.setOnClickListener(new View.OnClickListener() {
@@ -207,5 +220,53 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
+
+        // Offset
+        TextView xOffsetDisplay = findViewById(R.id.xOffsetDisplay);
+        TextView yOffsetDisplay = findViewById(R.id.yOffsetDisplay);
+        SeekBar xOffsetBar = findViewById(R.id.xOffsetBar);
+        SeekBar yOffsetBar = findViewById(R.id.yOffsetBar);
+        int ABS_X_OFFSET = xOffsetBar.getMax() / 2;
+        int ABS_Y_OFFSET = yOffsetBar.getMax() / 2;
+        xOffsetBar.setProgress(ABS_X_OFFSET);
+        yOffsetBar.setProgress(ABS_Y_OFFSET);
+        xOffsetDisplay.setText(String.format(Locale.ENGLISH, "%d", xOffsetBar.getProgress() - ABS_X_OFFSET));
+        yOffsetDisplay.setText(String.format(Locale.ENGLISH, "%d", yOffsetBar.getProgress() - ABS_Y_OFFSET));
+        xOffsetBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                MyAccessibilityService.xOffset = progress - ABS_X_OFFSET;
+                xOffsetDisplay.setText(String.format(Locale.ENGLISH, "%d", progress - ABS_X_OFFSET));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+        yOffsetBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                MyAccessibilityService.yOffset = progress - ABS_Y_OFFSET;
+                yOffsetDisplay.setText(String.format(Locale.ENGLISH, "%d", progress - ABS_Y_OFFSET));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
     }
+
 }
