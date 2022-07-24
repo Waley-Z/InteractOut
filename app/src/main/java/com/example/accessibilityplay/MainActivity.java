@@ -28,23 +28,13 @@ public class MainActivity extends AppCompatActivity {
     private int count = 0;
     private static final float[] scrollRatioValues = {5, 4, 3, 2, 1, 1f/2f, 1f/3f, 1f/4f, 1f/5f};
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        MyAccessibilityService.myAccessibilityService.disableSelf();
-    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ContentResolver contentResolver = getContentResolver();
-        Log.d(TAG, "onCreate: accessibility status is " + Settings.Secure.getString(contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED));
-        String status = Settings.Secure.getString(contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED);
-        if (status.equals("0")) {
-            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-        }
 
         Display display = getWindowManager().getDefaultDisplay();
         Point point = new Point();
