@@ -1,24 +1,15 @@
 package com.example.accessibilityplay;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.Manifest;
-import android.app.ActivityManager;
 import android.app.AlertDialog;
-import android.app.usage.UsageStats;
-import android.app.usage.UsageStatsManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.ContentResolver;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
@@ -27,12 +18,7 @@ import android.widget.NumberPicker;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.Calendar;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.Vector;
 
 public class PanelActivity extends AppCompatActivity implements NumberPicker.OnValueChangeListener, NumberPicker.OnScrollListener, NumberPicker.Formatter {
@@ -41,7 +27,7 @@ public class PanelActivity extends AppCompatActivity implements NumberPicker.OnV
     private static long CHECKING_PERIOD = 1000; // 1 s
     private TextView declaredTimeDisplay;
     private NumberPicker hourPicker, minutePicker, secondPicker, strengthPicker;
-    private View.OnClickListener launch, appChoices;
+    private View.OnClickListener launch, appChoices, stop;
     private AlertDialog alertDialog;
     private CountDownTimer countDownTimer;
     private boolean isLaunched = false;
@@ -94,7 +80,7 @@ public class PanelActivity extends AppCompatActivity implements NumberPicker.OnV
         Button startApp = findViewById(R.id.startApp);
         startApp.setText("Choose Apps");
         launch = v -> {
-            if (MyAccessibilityService.appChosen.size() == 0) {
+            if (CoreService.appChosen.size() == 0) {
                 AlertDialog.Builder alertBuilder = new AlertDialog.Builder(PanelActivity.this);
                 alertBuilder.setTitle("Warning");
                 alertBuilder.setItems(new String[]{"Please choose at least one app to continue!"}, new DialogInterface.OnClickListener() {
@@ -111,13 +97,15 @@ public class PanelActivity extends AppCompatActivity implements NumberPicker.OnV
             } else if (isLaunched) {
                 Toast.makeText(PanelActivity.this, "Already launched!", Toast.LENGTH_SHORT).show();
             }
+            startApp.setText("Stop");
+            startApp.setOnClickListener(stop);
             launchOverlayDelayed();
         };
         appChoices = new View.OnClickListener() {
             private Vector<String> app = new Vector<>(), packages = new Vector<>();
             @Override
             public void onClick(View v) {
-                if (MyAccessibilityService.packageNameMap.size() == 0) {
+                if (CoreService.packageNameMap.size() == 0) {
                     AlertDialog.Builder alertBuilder = new AlertDialog.Builder(PanelActivity.this);
                     alertBuilder.setTitle("Warning");
                     alertBuilder.setItems(new String[]{"Please enable accessibility settings!"}, new DialogInterface.OnClickListener() {
@@ -144,16 +132,21 @@ public class PanelActivity extends AppCompatActivity implements NumberPicker.OnV
                 } else {
                     AlertDialog.Builder alertBuilder = new AlertDialog.Builder(PanelActivity.this);
                     alertBuilder.setTitle("Choose disruptive apps:");
-                    // TODO: specify checkedItems
-                    alertBuilder.setMultiChoiceItems(MyAccessibilityService.packageNameMap.values().toArray(new String[0]), null, new DialogInterface.OnMultiChoiceClickListener() {
+                    boolean[] arr = new boolean[CoreService.appListDisplay.size()];
+                    for (int i = 0; i < arr.length; i++) {
+                        arr[i] = CoreService.appListDisplay.get(i);
+                    }
+                    alertBuilder.setMultiChoiceItems(CoreService.packageNameMap.values().toArray(new String[0]), arr, new DialogInterface.OnMultiChoiceClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which, boolean isChecked) {
                             if (isChecked) {
-                                app.add(MyAccessibilityService.packageNameMap.valueAt(which));
-                                packages.add(MyAccessibilityService.packageNameMap.keyAt(which));
+                                app.add(CoreService.packageNameMap.valueAt(which));
+                                packages.add(CoreService.packageNameMap.keyAt(which));
+                                CoreService.appListDisplay.set(which, true);
                             } else {
-                                app.remove(MyAccessibilityService.packageNameMap.valueAt(which));
-                                packages.remove(MyAccessibilityService.packageNameMap.keyAt(which));
+                                app.remove(CoreService.packageNameMap.valueAt(which));
+                                packages.remove(CoreService.packageNameMap.keyAt(which));
+                                CoreService.appListDisplay.set(which, false);
                             }
                             Log.d(TAG, "onClick: " + which + " is clicked");
                         }
@@ -164,8 +157,9 @@ public class PanelActivity extends AppCompatActivity implements NumberPicker.OnV
 //                            Toast.makeText(PanelActivity.this, "App choices confirmed " + which, Toast.LENGTH_SHORT).show();
                             startApp.setText("Launch");
                             startApp.setOnClickListener(launch);
-                            MyAccessibilityService.appChosen = app;
-                            MyAccessibilityService.packageChosen = packages;
+                            allowTapToSeeApps();
+                            CoreService.appChosen = app;
+                            CoreService.packageChosen = packages;
                             alertDialog.dismiss();
                         }
                     });
@@ -180,16 +174,29 @@ public class PanelActivity extends AppCompatActivity implements NumberPicker.OnV
                 }
             }
         };
+        stop = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                isLaunched = false;
+                CoreService.coreService.closeOverlayWindow();
+                CoreService.appChosen.removeAllElements();
+                CoreService.packageChosen.removeAllElements();
+                startApp.setText("Choose Apps");
+                startApp.setOnClickListener(appChoices);
+            }
+        };
         startApp.setOnClickListener(appChoices);
+        createNotificationChannel();
     }
 
-    private void countdownText() {
+    private void allowTapToSeeApps() {
+        declaredTimeDisplay.setText("Tap to see the apps you have chosen.");
         declaredTimeDisplay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 AlertDialog.Builder alertBuilder = new AlertDialog.Builder(PanelActivity.this);
                 alertBuilder.setTitle("Apps to get away");
-                alertBuilder.setItems(MyAccessibilityService.appChosen.toArray(new String[0]), new DialogInterface.OnClickListener() {
+                alertBuilder.setItems(CoreService.appChosen.toArray(new String[0]), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         alertDialog.dismiss();
@@ -199,33 +206,14 @@ public class PanelActivity extends AppCompatActivity implements NumberPicker.OnV
                 alertDialog.show();
             }
         });
-//        countDownTimer = new CountDownTimer(MyAccessibilityService.timeBeforeOverlaid * 1000L, 1000) {
-//            @Override
-//            public void onTick(long millisUntilFinished) {
-//                millisUntilFinished /= 1000;
-//                long hour = millisUntilFinished / 3600;
-//                long minute = (millisUntilFinished - hour * 3600) / 60;
-//                long second = millisUntilFinished- hour * 3600 - minute * 60;
-//                String hours = (hour == 1) ? "hour" : "hours";
-//                String minutes = (minute == 1) ? "minute" : "minutes";
-//                String seconds = (second == 1) ? "second" : "seconds";
-//                declaredTimeDisplay.setText(String.format(Locale.ENGLISH, "%d %s, %d %s and %d %s left. Tap to see the apps you have chosen.", hour, hours, minute, minutes, second, seconds));
-//            }
-//
-//            @Override
-//            public void onFinish() {
-//                declaredTimeDisplay.setText("Overlay launched.");
-//            }
-//        };
-//        countDownTimer.start();
-        Toast.makeText(this, "timer activated", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     protected void onDestroy() {
         if (isLaunched)  {
-            MyAccessibilityService.myAccessibilityService.disableSelf();
+            CoreService.coreService.disableSelf();
 //            repeatedCheckHandler.removeCallbacks(repeatedCheck);
+            isLaunched = false;
         }
         super.onDestroy();
     }
@@ -249,9 +237,23 @@ public class PanelActivity extends AppCompatActivity implements NumberPicker.OnV
 //            }
 //        }, MyAccessibilityService.timeBeforeOverlaid * 1000L);
 //        repeatedCheck.run();
-//        countdownText();
+
         Toast.makeText(this, "Start!", Toast.LENGTH_SHORT).show();
         isLaunched = true;
+    }
+
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        CharSequence name = "Channel Name";
+        String description = "This my channel";
+        int importance = NotificationManager.IMPORTANCE_DEFAULT;
+        NotificationChannel channel = new NotificationChannel("lalala", name, importance);
+        channel.setDescription(description);
+        // Register the channel with the system; you can't change the importance
+        // or other notification behaviors after this
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        notificationManager.createNotificationChannel(channel);
     }
 
     @Override
@@ -266,12 +268,12 @@ public class PanelActivity extends AppCompatActivity implements NumberPicker.OnV
     @Override
     public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
         if (picker == strengthPicker) {
-            MyAccessibilityService.strength = newVal;
+            CoreService.strength = newVal;
         } else {
             int hour = hourPicker.getValue();
             int minute = minutePicker.getValue();
             int second = secondPicker.getValue();
-            MyAccessibilityService.timeBeforeOverlaid = (hour * 3600L + minute * 60L + second) * 1000;
+            CoreService.timeBeforeOverlaid = (hour * 3600L + minute * 60L + second) * 1000;
             String hours = (hour == 1) ? "hour" : "hours";
             String minutes = (minute == 1) ? "minute" : "minutes";
             String seconds = (second == 1) ? "second" : "seconds";

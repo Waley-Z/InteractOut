@@ -8,10 +8,11 @@
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <queries>
         <intent>
-            <action android:name="android.intent.action.MAIN" />
+            <action android:name="android.accessibilityservice.AccessibilityService" />
         </intent>
     </queries>
 
@@ -26,6 +27,12 @@
         android:theme="@style/Theme.AccessibilityPlay"
         tools:targetApi="31">
         <activity
+            android:name=".Tutorial"
+            android:exported="false" />
+        <activity
+            android:name=".LabQuiz"
+            android:exported="false" />
+        <activity
             android:name=".LabMode"
             android:exported="false" />
         <activity
@@ -39,7 +46,7 @@
         </activity>
 
         <service
-            android:name=".MyAccessibilityService"
+            android:name=".CoreService"
             android:exported="true"
             android:label="@string/app_name"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">

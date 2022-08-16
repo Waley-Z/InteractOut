@@ -9,4 +9,10 @@
     <color name="white">#FFFFFFFF</color>
     <color name="transparent">#01FFFFFF</color>
     <color name="overlay_color">#aa123456</color>
+    <color name="UM_blue">#00274C</color>
+    <color name="UM_blue_variant">#364f78</color>
+    <color name="UM_blue_night">#000024</color>
+    <color name="UM_maize">#FFCB05</color>
+    <color name="UM_maize_variant">#fffe52</color>
+    <color name="UM_maize_night">#c79b00</color>
 </resources>

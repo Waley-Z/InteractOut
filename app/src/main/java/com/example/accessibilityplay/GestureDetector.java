@@ -23,7 +23,6 @@ import android.os.Message;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
-import android.view.View;
 import android.view.ViewConfiguration;
 
 import androidx.annotation.UiContext;
@@ -150,6 +149,8 @@ public class GestureDetector {
          * @return true if the event is consumed, else false
          */
         boolean onDoubleTapEvent(MotionEvent e);
+
+        boolean onMultifingerTap(MotionEvent e);
     }
 
     /**
@@ -208,6 +209,10 @@ public class GestureDetector {
             return false;
         }
 
+        public boolean onMultifingerTap(MotionEvent e) {
+            return false;
+        }
+
         public boolean onSingleTapConfirmed(MotionEvent e) {
             return false;
         }
@@ -224,6 +229,7 @@ public class GestureDetector {
     private float mAmbiguousGestureMultiplier;
     private int mMinimumFlingVelocity;
     private int mMaximumFlingVelocity;
+    private int mFingerNum = 0;
 
     public static int TAP_TIMEOUT = ViewConfiguration.getTapTimeout(); // 200
     public static int DOUBLE_TAP_TIMEOUT = ViewConfiguration.getDoubleTapTimeout(); // 300
@@ -310,7 +316,6 @@ public class GestureDetector {
                     // If the user's finger is still down, do not count it as a tap
                     if (mDoubleTapListener != null) {
                         if (!mStillDown) {
-                            Log.d(TAG, "handleMessage: single tap triggered");
                             mDoubleTapListener.onSingleTapConfirmed(mCurrentDownEvent);
                         } else {
                             mDeferConfirmSingleTap = true;
@@ -548,9 +553,15 @@ public class GestureDetector {
                 mDownFocusY = mLastFocusY = focusY;
                 // Cancel long press and taps
                 cancelTaps();
+                mFingerNum += 1;
+                Log.d(TAG, "onTouchEvent: " + mFingerNum);
+                if (mFingerNum >= CoreService.minimumFingerToTap) {
+                    mDoubleTapListener.onMultifingerTap(ev);
+                }
                 break;
 
             case MotionEvent.ACTION_POINTER_UP:
+                mFingerNum -= 1;
                 mDownFocusX = mLastFocusX = focusX;
                 mDownFocusY = mLastFocusY = focusY;
 
@@ -596,6 +607,7 @@ public class GestureDetector {
                     }
                 }
 
+                mFingerNum += 1;
                 mDownFocusX = mLastFocusX = focusX;
                 mDownFocusY = mLastFocusY = focusY;
                 if (mCurrentDownEvent != null) {
@@ -656,7 +668,7 @@ public class GestureDetector {
                             // will happen in response to user input. To prevent this,
                             // reschedule long press with a modified timeout.
                             mHandler.removeMessages(LONG_PRESS);
-                            final long longPressTimeout = ViewConfiguration.getLongPressTimeout();
+                            final long longPressTimeout = ViewConfiguration.getLongPressTimeout() + TAP_THRESHOLD + LONG_PRESS_PROLONG;
                             mHandler.sendMessageAtTime(
                                     mHandler.obtainMessage(
                                             LONG_PRESS,
@@ -710,6 +722,7 @@ public class GestureDetector {
                 break;
 
             case MotionEvent.ACTION_UP:
+                mFingerNum -= 1;
                 mStillDown = false;
                 mHandler.removeCallbacks(tapBegin);
                 MotionEvent currentUpEvent = MotionEvent.obtain(ev);
@@ -758,6 +771,7 @@ public class GestureDetector {
                 break;
 
             case MotionEvent.ACTION_CANCEL:
+                mFingerNum = 0;
                 cancel();
                 break;
         }
