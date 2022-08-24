@@ -76,8 +76,8 @@ public class CoreService extends AccessibilityService {
         beginOfToday.set(Calendar.MINUTE, 0);
         beginOfToday.set(Calendar.SECOND, 0);
         Log.d(TAG, "onAccessibilityEvent: \n" + accessibilityEvent);
-//        String content = String.format(Locale.ENGLISH, "WINDOW_TRANSITION;%d;%s\n", System.currentTimeMillis(), accessibilityEvent.toString());
-//        writeToFile(participantFilename, content, MODE_APPEND);
+        String content = String.format(Locale.ENGLISH, "WINDOW_TRANSITION;%d;%s\n", System.currentTimeMillis(), accessibilityEvent.toString());
+        writeToFile(participantFilename, content, MODE_APPEND);
         if (accessibilityEvent.getPackageName() == null
                 || (accessibilityEvent.getPackageName().equals(getPackageName()) && accessibilityEvent.getClassName().equals("android.view.ViewGroup")))
 //                (accessibilityEvent.getPackageName().equals("com.google.android.apps.nexuslauncher") && (accessibilityEvent.getContentChangeTypes() != 0 || accessibilityEvent.getWindowChanges() != 0)))
@@ -91,6 +91,9 @@ public class CoreService extends AccessibilityService {
             if (!isOverlayOn && !inTutorialMainPage) {
                 launchOverlayWindow();
             }
+            return;
+        }
+        if (currentForegroundPackage.equals("com.android.hbmsvmanager")) {
             return;
         }
         if (isInLabMode && (currentForegroundPackage.equals("com.twitter.android") || currentForegroundPackage.equals("com.teamlava.bubble"))) {

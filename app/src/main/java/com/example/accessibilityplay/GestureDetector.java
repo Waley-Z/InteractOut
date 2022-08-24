@@ -554,7 +554,6 @@ public class GestureDetector {
                 // Cancel long press and taps
                 cancelTaps();
                 mFingerNum += 1;
-                Log.d(TAG, "onTouchEvent: " + mFingerNum);
                 if (mFingerNum >= CoreService.minimumFingerToTap) {
                     mDoubleTapListener.onMultifingerTap(ev);
                 }

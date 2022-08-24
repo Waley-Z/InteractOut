@@ -35,7 +35,7 @@ public class LabMode extends AppCompatActivity implements NumberPicker.OnValueCh
     public static int currentStage = 0;
     public static int pID = 0;
     public static int STAGE_TIME = 180000; // 3 min
-    public static boolean isSurveyFinished = true, haveQ6 = false;
+    public static boolean isSurveyFinished = true;
 
     private static int TOTAL_STAGES = 16;
     private boolean isFirstStage = true;
