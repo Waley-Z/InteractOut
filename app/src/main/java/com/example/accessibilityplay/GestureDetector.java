@@ -234,7 +234,7 @@ public class GestureDetector {
     public static int TAP_TIMEOUT = ViewConfiguration.getTapTimeout(); // 200
     public static int DOUBLE_TAP_TIMEOUT = ViewConfiguration.getDoubleTapTimeout(); // 300
     public static int DOUBLE_TAP_MIN_TIME = 40; // 40
-    public static int LONG_PRESS_PROLONG = 0;
+    public static int LONG_PRESS_PROLONG = 1000; // now default value is 1400ms to long press
     public static int TAP_THRESHOLD = 0;
 
 
@@ -247,7 +247,7 @@ public class GestureDetector {
     private final OnGestureListener mListener;
     private OnDoubleTapListener mDoubleTapListener;
     private OnContextClickListener mContextClickListener;
-    private Runnable tapBegin = new Runnable() {
+    private final Runnable tapBegin = new Runnable() {
         @Override
         public void run() {
             mHandler.sendEmptyMessageDelayed(TAP, DOUBLE_TAP_TIMEOUT);
@@ -628,7 +628,7 @@ public class GestureDetector {
                                     TOUCH_GESTURE_CLASSIFIED__CLASSIFICATION__LONG_PRESS,
                                     0 /* arg2 */),
                             mCurrentDownEvent.getDownTime()
-                                    + ViewConfiguration.getLongPressTimeout() + TAP_THRESHOLD + LONG_PRESS_PROLONG);
+                                    + ViewConfiguration.getLongPressTimeout() + TAP_THRESHOLD + LONG_PRESS_PROLONG); // default 400ms
                 }
                 mHandler.sendEmptyMessageAtTime(SHOW_PRESS,
                         mCurrentDownEvent.getDownTime() + TAP_TIMEOUT);

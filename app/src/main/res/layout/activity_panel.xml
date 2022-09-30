@@ -8,10 +8,14 @@
 
     <TextView
         android:id="@+id/titileText"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
         android:layout_marginTop="50dp"
-        android:text="TextView"
+        android:layout_marginEnd="24dp"
+        android:text="@string/interactout"
+        android:textSize="20sp"
+        android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -20,21 +24,12 @@
         android:id="@+id/settingBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="100dp"
+        android:layout_marginBottom="20dp"
         android:onClick="settingButtonOnClick"
         android:text="@string/go_to_settings"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/button3"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
-
-    <NumberPicker
-        android:id="@+id/hourPicker"
-        android:layout_width="70dp"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="40dp"
-        android:scrollbarSize="10dp"
-        app:layout_constraintEnd_toStartOf="@+id/minutePicker"
-        app:layout_constraintTop_toBottomOf="@+id/hourBar" />
 
     <NumberPicker
         android:id="@+id/strengthPicker"
@@ -42,76 +37,24 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:scrollbarSize="10dp"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.66"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/declaredTimeDisplay" />
-
-    <NumberPicker
-        android:id="@+id/minutePicker"
-        android:layout_width="70dp"
-        android:layout_height="wrap_content"
-        android:scrollbarSize="10dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/minuteBar" />
-
-    <NumberPicker
-        android:id="@+id/secondPicker"
-        android:layout_width="70dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:scrollbarSize="10dp"
-        app:layout_constraintStart_toEndOf="@+id/minutePicker"
-        app:layout_constraintTop_toBottomOf="@+id/secondBar" />
-
-    <TextView
-        android:id="@+id/hourBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="30dp"
-        android:layout_marginEnd="65dp"
-        android:text="Hour"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toStartOf="@+id/minuteBar"
-        app:layout_constraintTop_toBottomOf="@+id/titileText" />
-
-    <TextView
-        android:id="@+id/minuteBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="30dp"
-        android:text="Minute"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/titileText" />
-
-    <TextView
-        android:id="@+id/secondBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="50dp"
-        android:layout_marginTop="30dp"
-        android:text="Second"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toEndOf="@+id/minuteBar"
-        app:layout_constraintTop_toBottomOf="@+id/titileText" />
 
     <TextView
         android:id="@+id/declaredTimeDisplay"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="30dp"
-        android:layout_marginTop="30dp"
+        android:layout_marginTop="20dp"
         android:layout_marginEnd="30dp"
-        android:text="Choose the time you want to use the phone, and we will take care of the rest. :)"
+        android:padding="20dp"
+        android:text="Configure your interventions below, and choose the apps you want to intervene."
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/minutePicker" />
+        app:layout_constraintTop_toBottomOf="@+id/titileText" />
 
     <TextView
         android:id="@+id/textView11"
@@ -119,6 +62,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="90dp"
         android:text="Choose the strength"
+        android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.28"
         app:layout_constraintStart_toStartOf="parent"
@@ -128,9 +72,9 @@
         android:id="@+id/startApp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="180dp"
+        android:layout_marginBottom="20dp"
         android:text="launch"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/settingBtn"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -141,9 +85,121 @@
         android:layout_marginBottom="25dp"
         android:onClick="labModeButtonOnClick"
         android:text="Lab Study"
-        android:visibility="visible"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/textView34"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="25dp"
+        android:text="Tap Interventions"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/declaredTimeDisplay" />
+
+    <TextView
+        android:id="@+id/textView40"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        android:text="Swipe Interventions"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tapChipGroup" />
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/swipeChipGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView40">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipSwipeDelay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="Delay" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipRatio"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="Ratio" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipReverse"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="Reverse" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipMultiple"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="Multiple" />
+    </com.google.android.material.chip.ChipGroup>
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/tapChipGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView34">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipTapDelay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="Delay" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipProlong"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="Prolong" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipDouble"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="Double" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chipOffset"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="Offset" />
+    </com.google.android.material.chip.ChipGroup>
+
+    <TextView
+        android:id="@+id/noteInformation"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="30dp"
+        android:layout_marginEnd="32dp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/swipeChipGroup" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

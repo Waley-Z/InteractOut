@@ -120,8 +120,8 @@ public class Window {
                 numFingers = Math.max(event.getPointerCount(), numFingers);
 //                    Log.d(TAG, "onTouch: \n" + scrollNumber);
                 if (action.equals("ACTION_UP") && scrollNumber <= 1 && event.getEventTime() - event.getDownTime() < GestureDetector.TAP_THRESHOLD) {
-                    String content = String.format(Locale.ENGLISH, "USER_SINGLE_TAP_TOO_SHORT;%d;%d\n", System.currentTimeMillis(), event.getEventTime() - event.getDownTime());
-                    CoreService.coreService.writeToFile(participantFilename, content, MODE_APPEND);
+//                    String content = String.format(Locale.ENGLISH, "USER_SINGLE_TAP_TOO_SHORT;%d;%d\n", System.currentTimeMillis(), event.getEventTime() - event.getDownTime());
+//                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
                     textViewDuration.setText(String.format(Locale.ENGLISH, "Tap duration too short (%d/%d ms)", event.getEventTime() - event.getDownTime(), GestureDetector.TAP_THRESHOLD));
                     if (CoreService.prolongNoteShowTime > 0) {
                         CoreService.prolongNoteShowTime --;
@@ -145,8 +145,8 @@ public class Window {
                     }
                 } else if (action.equals("ACTION_UP") && scrollNumber > 0 && lastScrollTime > downTime && numFingers >= CoreService.swipeFingers) {
                     // end of scroll
-                    String content = String.format(Locale.ENGLISH, "USER_SWIPE;%d\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(participantFilename, content, MODE_APPEND);
+//                    String content = String.format(Locale.ENGLISH, "USER_SWIPE;%d\n", System.currentTimeMillis());
+//                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
                     changeToNotTouchable(overlay, CoreService.swipeDelay);
 //                    cv.block(100);
                     WindowManager.LayoutParams params = (isInTutorial) ? paramsTutorial : paramsTouchable;
@@ -183,7 +183,7 @@ public class Window {
             public boolean onTouch(View v, MotionEvent event) {
                 Log.d(TAG, "onTouch: listener \n" + event);
                 downNumber++;
-                if (downNumber == 2) {
+                if (downNumber == 1) {
                     downNumber = 0;
                     changeToNotTouchable(listener, 0);
                     changeToTouchable(overlay, paramsTouchable, 0);
@@ -327,7 +327,7 @@ public class Window {
             thread.start();
         }
         Log.d(TAG, "changeToNotTouchable: cv block called");
-        conditionVariable.block(1000);
+        conditionVariable.block(2000);
     }
 
     private void changeToTouchable(View view, WindowManager.LayoutParams params, long delay) {
@@ -386,8 +386,8 @@ public class Window {
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
             if (CoreService.minimumFingerToTap > 1 || CoreService.isDoubleTapToSingleTap) return true;
-            String content = String.format(Locale.ENGLISH, "USER_SINGLE_TAP;%d;%s\n", System.currentTimeMillis(), e.toString());
-            CoreService.coreService.writeToFile(participantFilename, content, MODE_APPEND);
+//            String content = String.format(Locale.ENGLISH, "USER_SINGLE_TAP;%d;%s\n", System.currentTimeMillis(), e.toString());
+//            CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
             WindowManager.LayoutParams params = (isInTutorial) ? paramsTutorial : paramsTouchable;
             detectedEvent.setText("Single tap");
 //            Log.i("GESTURE", "onSingleTapConfirmed: \n" + e.toString());
@@ -402,8 +402,8 @@ public class Window {
         @Override
         public boolean onMultifingerTap(MotionEvent e) {
             if (CoreService.minimumFingerToTap == 1) return true;
-            String content = String.format(Locale.ENGLISH, "USER_MULTIFINGER_TAP;%d;%s\n", System.currentTimeMillis(), e.toString());
-            CoreService.coreService.writeToFile(participantFilename, content, MODE_APPEND);
+//            String content = String.format(Locale.ENGLISH, "USER_MULTIFINGER_TAP;%d;%s\n", System.currentTimeMillis(), e.toString());
+//            CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
             WindowManager.LayoutParams params = (isInTutorial) ? paramsTutorial : paramsTouchable;
             detectedEvent.setText("Multifinger tap");
 //            Log.d(TAG, "onMultifingerTap: " + e);
@@ -418,8 +418,8 @@ public class Window {
         public void onLongPress(MotionEvent e) {
             Log.d(TAG, "onLongPress: \n" + currentForegroundPackage);
             Log.i("GESTURE", "onLongPress: \n" + e.toString());
-            String content = String.format(Locale.ENGLISH, "USER_LONG_PRESS;%d\n", System.currentTimeMillis());
-            CoreService.coreService.writeToFile(participantFilename, content, MODE_APPEND);
+//            String content = String.format(Locale.ENGLISH, "USER_LONG_PRESS;%d\n", System.currentTimeMillis());
+//            CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
             if (isInLabMode) {
                 if (CoreService.prolongNoteShowTime > 0) {
                     prolongNoteShowTime --;
@@ -441,8 +441,8 @@ public class Window {
         public boolean onDoubleTap(MotionEvent e) {
             // Can be more precise simulation, not just using fixed one.
 //            Log.i("GESTURE", "onDoubleTap: \n" + e.toString());
-            String content = String.format(Locale.ENGLISH, "USER_DOUBLE_TAP;%d;%s\n", System.currentTimeMillis(), e.toString());
-            CoreService.coreService.writeToFile(participantFilename, content, MODE_APPEND);
+//            String content = String.format(Locale.ENGLISH, "USER_DOUBLE_TAP;%d;%s\n", System.currentTimeMillis(), e.toString());
+//            CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
             WindowManager.LayoutParams params = (isInTutorial) ? paramsTutorial : paramsTouchable;
             if (CoreService.isDoubleTapToSingleTap) {
                 cv.block(100);

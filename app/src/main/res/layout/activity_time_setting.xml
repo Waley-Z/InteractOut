@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".TimeSetting">
+
+    <NumberPicker
+        android:id="@+id/secondPicker"
+        android:layout_width="70dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="40dp"
+        android:scrollbarSize="10dp"
+        app:layout_constraintStart_toEndOf="@+id/minutePicker"
+        app:layout_constraintTop_toBottomOf="@+id/secondBar" />
+
+    <NumberPicker
+        android:id="@+id/minutePicker"
+        android:layout_width="70dp"
+        android:layout_height="wrap_content"
+        android:scrollbarSize="10dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/minuteBar" />
+
+    <NumberPicker
+        android:id="@+id/hourPicker"
+        android:layout_width="70dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="40dp"
+        android:scrollbarSize="10dp"
+        app:layout_constraintEnd_toStartOf="@+id/minutePicker"
+        app:layout_constraintTop_toBottomOf="@+id/hourBar" />
+
+    <TextView
+        android:id="@+id/secondBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="50dp"
+        android:layout_marginTop="30dp"
+        android:text="Second"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toEndOf="@+id/minuteBar"
+        app:layout_constraintTop_toBottomOf="@+id/currentApp" />
+
+    <TextView
+        android:id="@+id/minuteBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:text="Minute"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/currentApp" />
+
+    <TextView
+        android:id="@+id/hourBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:layout_marginEnd="65dp"
+        android:text="Hour"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@+id/minuteBar"
+        app:layout_constraintTop_toBottomOf="@+id/currentApp" />
+
+    <TextView
+        android:id="@+id/timeSettingInstruction"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="48dp"
+        android:layout_marginEnd="24dp"
+        android:text="@string/time_setting_instruction"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/timeSetBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="64dp"
+        android:text="Set Time"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/minutePicker" />
+
+    <TextView
+        android:id="@+id/currentApp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:text="TextView"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/timeSettingInstruction" />
+</androidx.constraintlayout.widget.ConstraintLayout>

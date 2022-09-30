@@ -41,7 +41,7 @@ public class LabQuiz extends AppCompatActivity {
                     builder.setItems(new String[]{"Please complete the survey before proceeding."}, null);
                     builder.create().show();
                 } else {
-                    // Indicator,current stage, ans 1, ans 2, ans 3, time stamp when send.
+                    // Indicator,current stage, timestamp, ans 1, ans 2, ans 3, ans 4, ans 5, ans 6.
                     LabMode.answerString = String.format(Locale.ENGLISH, "STAGE_END;%d\nANSWERS;%d;%d;%s;%s;%s;%s;%s;%s\n", surveyStartTime, LabMode.currentStage, System.currentTimeMillis(), answers[0], answers[1], answers[2], answers[3], answers[4], answers[5]);
                     LabMode.currentStage += 1;
                     LabMode.isSurveyFinished = true;

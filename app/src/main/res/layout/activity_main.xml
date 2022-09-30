@@ -59,6 +59,7 @@
                 android:layout_marginEnd="32dp"
                 android:minHeight="48dp"
                 android:text="@string/activate_disabling_window"
+                android:visibility="gone"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/yOffsetBar" />
@@ -103,7 +104,7 @@
                 android:text="@string/revert_swipe_direction"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/disableAreaSwitch" />
+                app:layout_constraintTop_toBottomOf="@+id/doubleTapToSingleTap" />
 
             <TextView
                 android:id="@+id/tapDelayDisplay"
@@ -316,8 +317,9 @@
                 android:layout_marginStart="32dp"
                 android:layout_marginTop="20dp"
                 android:text="Fingers to Tap"
+                android:visibility="gone"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/tapDelayBar" />
+                app:layout_constraintTop_toBottomOf="@+id/swipeDelayBar" />
 
             <TextView
                 android:id="@+id/tapFingersDisplay"
@@ -325,8 +327,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:layout_marginEnd="32dp"
+                android:visibility="gone"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/tapDelayBar" />
+                app:layout_constraintTop_toBottomOf="@+id/swipeDelayBar" />
 
             <SeekBar
                 android:id="@+id/tapFingersBar"
@@ -338,9 +341,53 @@
                 android:layout_marginEnd="32dp"
                 android:max="4"
                 android:progress="0"
+                android:visibility="gone"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/tapFingers" />
+
+            <TextView
+                android:id="@+id/swipeDelay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="32dp"
+                android:layout_marginTop="20dp"
+                android:text="Swipe Delay"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tapDelayBar" />
+
+            <SeekBar
+                android:id="@+id/swipeDelayBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="32dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="32dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/swipeDelay" />
+
+            <TextView
+                android:id="@+id/swipeDelayDisplay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginEnd="32dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tapDelayBar" />
+
+            <Switch
+                android:id="@+id/doubleTapToSingleTap"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="32dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginEnd="32dp"
+                android:minHeight="48dp"
+                android:text="Double Tap to Single Tap"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/yOffsetBar" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
