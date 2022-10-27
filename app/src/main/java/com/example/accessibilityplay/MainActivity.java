@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         revertDirectionSwitch.setOnCheckedChangeListener((compoundButton, b) -> {
             CoreService.reverseDirection = b;
             String content = String.format(Locale.ENGLISH, "REVERSE;%d;%s\n", System.currentTimeMillis(), b);
-            CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+            CoreService.coreService.writeToFile(content);
         });
 
         // tap delay
@@ -87,13 +87,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "TAP_DELAY_INITIAL_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "TAP_DELAY_END_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
         });
 
@@ -116,13 +116,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "SWIPE_DELAY_INITIAL_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "SWIPE_DELAY_END_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
         });
 
@@ -158,13 +158,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "SWIPE_RATIO_INITIAL_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "SWIPE_RATIO_END_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
         });
 
@@ -184,13 +184,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "SWIPE_FINGER_INITIAL_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "SWIPE_FINGER_END_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
         });
 
@@ -233,13 +233,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "TAP_THRESHOLD_INITIAL_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "TAP_THRESHOLD_END_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
         });
 
@@ -291,13 +291,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "XOFFSET_INITIAL_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "XOFFSET_END_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
         });
         yOffsetBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -311,13 +311,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "YOFFSET_INITIAL_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 String content = String.format(Locale.ENGLISH, "YOFFSET_END_VALUE;%d;%d\n", System.currentTimeMillis(), seekBar.getProgress());
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
         });
 
@@ -352,7 +352,7 @@ public class MainActivity extends AppCompatActivity {
                 CoreService.isDoubleTapToSingleTap = isChecked;
                 CoreService.coreService.broadcastField("Current Intervention", CoreService.coreService.getCurrentInterventions(), 2, true);
                 String content = String.format(Locale.ENGLISH, "DOUBLE_TAP_SET;%d;%s\n", System.currentTimeMillis(), isChecked);
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
         });
     }

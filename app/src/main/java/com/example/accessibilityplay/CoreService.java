@@ -16,19 +16,33 @@ import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.Path;
+import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.os.CountDownTimer;
 import android.os.Environment;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.ArrayMap;
 import android.util.Log;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -45,7 +59,6 @@ import java.util.Vector;
 public class CoreService extends AccessibilityService {
     public static CoreService coreService;
     public Window window;
-    public static CountDownTimer stageTimer = null;
     public static boolean reverseDirection = false,
             isInLabMode = false,
             isDisablingWindowAllowed = false,
@@ -61,7 +74,7 @@ public class CoreService extends AccessibilityService {
     public static int swipeDelay = 0, swipeDelayMax = 0;
     public static int minimumFingerToTap = 1;
     // 50 to 100 ms time is good for prolong
-    public static int swipeFingers = 1, swipeFingersMax = 0;
+    public static int swipeFingers = 1;
     public static int xOffset = 0;
     public static int yOffset = 0;
     public static int prolongMax = 0;
@@ -70,13 +83,12 @@ public class CoreService extends AccessibilityService {
     // TODO need to find out a way refill show time every day.
     public static int prolongNoteShowTime = 100;
     public static int screenWidth = 1080, screenHeight = 2400;
-    public static long timeBeforeOverlaid;
     public static String currentForegroundPackage = "", currrentClassName = "";
-    public static String participantFilename = "Field Study Data.txt";
+    public static String participantFilename = "test user";
     public static Vector<String> appChosen = new Vector<>(), packageChosen = new Vector<>(), systemPackages = new Vector<>();
     public static ArrayMap<String, Long> appUsedTime = new ArrayMap<>(), appTargetTime = new ArrayMap<>(), appGrantedTime = new ArrayMap<>();
-    public static ArrayMap<String, String> packageNameMap = new ArrayMap<>();
-    public static Uri dataFileUri;
+    public static ArrayMap<String, String> packageNameMap = new ArrayMap<>(), appInterventionCode = new ArrayMap<>();
+    public FirebaseFirestore db;
 
     private final static String TAG = "MyAccessibilityService.java";
     private Calendar beginOfToday;
@@ -85,24 +97,17 @@ public class CoreService extends AccessibilityService {
     private final long SATURATION_NUM = 1; // after 10 interactions, call increaseIntensity()
     private int currentStep = 0;
     private PendingIntent inStudySurveyPopUpIntent;
+    private Handler checkTimeHandler;
+    private Runnable checkTimeRunnable;
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
-        int date = (beginOfToday == null) ? 0 : beginOfToday.get(Calendar.DATE);
-        beginOfToday = Calendar.getInstance();
-        if (date != 0 && date != beginOfToday.get(Calendar.DATE)) {
-            dailyClean();
-        }
-        beginOfToday.set(Calendar.HOUR, 0);
-        beginOfToday.set(Calendar.MINUTE, 0);
-        beginOfToday.set(Calendar.SECOND, 0);
-        Log.d(TAG, "onAccessibilityEvent: \n" + accessibilityEvent);
-//        String content = String.format(Locale.ENGLISH, "WINDOW_TRANSITION;%d;%s\n", System.currentTimeMillis(), accessibilityEvent.toString());
-//        writeToFile(dataFileUri, content);
 
+        Log.d(TAG, "onAccessibilityEvent: \n" + accessibilityEvent);
         if (accessibilityEvent.getPackageName() == null
-                || (accessibilityEvent.getPackageName().equals(getPackageName()) && (accessibilityEvent.getClassName().equals("android.view.ViewGroup") || accessibilityEvent.getClassName().equals("android.app.AlertDialog"))))
-//                (accessibilityEvent.getPackageName().equals("com.google.android.apps.nexuslauncher") && (accessibilityEvent.getContentChangeTypes() != 0 || accessibilityEvent.getWindowChanges() != 0)))
+                || (accessibilityEvent.getPackageName().equals(getPackageName())
+                && (accessibilityEvent.getClassName().equals("android.view.ViewGroup")
+                || accessibilityEvent.getClassName().equals("android.app.AlertDialog"))))
         {
             Log.d(TAG, "onAccessibilityEvent: Returned");
             Log.d(TAG, "onAccessibilityEvent: isOverlay = " + isOverlayOn);
@@ -110,60 +115,28 @@ public class CoreService extends AccessibilityService {
         }
         currentForegroundPackage = (String) accessibilityEvent.getPackageName();
         currrentClassName = (String) accessibilityEvent.getClassName();
+        if (currentForegroundPackage.equals("com.google.android.inputmethod.latin")) {
+            return;
+        }
         if (isInLabMode && accessibilityEvent.getClassName().equals(getPackageName() + ".Tutorial")) {
             if (!isOverlayOn && !inTutorialMainPage) {
                     launchOverlayWindow();
             }
             return;
         }
-        if (isInLabMode && (currentForegroundPackage.equals("com.twitter.android") || currentForegroundPackage.equals("com.teamlava.bubble"))) {
+        if (isInLabMode &&
+                (currentForegroundPackage.equals("com.twitter.android")
+                        || currentForegroundPackage.equals("com.teamlava.bubble"))) {
             // in lab mode the intervention of these two app is control on purpose
             return;
         }
         if (systemPackages.contains(currentForegroundPackage)) {
-            if (!currrentClassName.equals("com.android.systemui.volume.VolumeDialogImpl$CustomDialog") && isCountdownLaunched) {
+            if (!currrentClassName.equals("com.android.systemui.volume.VolumeDialogImpl$CustomDialog")
+                    && isCountdownLaunched) {
                 countDownTimer.cancel();
                 isCountdownLaunched = false;
                 Toast.makeText(this, "countdown turned off", Toast.LENGTH_SHORT).show();
             }
-            return;
-        }
-//        if (currentForegroundPackage.equals("com.android.hbmsvmanager")) {
-//            return;
-//        }
-//        if (isInLabMode && accessibilityEvent.getPackageName().equals("com.android.chrome")) {
-//            return;
-//        }
-//        if (accessibilityEvent.getPackageName().equals("com.android.systemui")) {
-//            return;
-//        }
-//        if (accessibilityEvent.getPackageName().equals("com.google.android.googlequicksearchbox")) {
-//            return;
-//        }
-//        if (accessibilityEvent.getPackageName().equals("com.google.android.apps.nexuslauncher")) {
-//            return;
-//        }
-
-        if (accessibilityEvent.getPackageName().equals("com.google.android.inputmethod.latin")) {
-//            Log.d(TAG, "onAccessibilityEvent: " + accessibilityEvent.getContentDescription());
-//            if (accessibilityEvent.getContentDescription() == null) {
-//                if (isKeyboardOn) {
-//                    launchOverlayWindow();
-//                } else {
-//                    closeOverlayWindow();
-//                }
-//                isKeyboardOn = !isKeyboardOn;
-//            } else {
-//                String s = (String) accessibilityEvent.getContentDescription();
-//                if (s.contains("Showing") || s.length() == 1) {
-//                    isKeyboardOn = true;
-//                    closeOverlayWindow();
-//                } else if (s.contains("hidden")) {
-//                    isKeyboardOn = false;
-//                    launchOverlayWindow();
-//                }
-//                Toast.makeText(this, s, Toast.LENGTH_SHORT).show();
-//            }
             return;
         }
         refreshUseTime();
@@ -171,7 +144,7 @@ public class CoreService extends AccessibilityService {
         boolean isTargetApp = appUsedTime.containsKey(currentForegroundPackage);
         if (isTargetApp) {
             String content = String.format(Locale.ENGLISH, "USAGE;%d;%s;%s;%s\n", System.currentTimeMillis(), appUsedTime, appTargetTime, appGrantedTime);
-            writeToFile(dataFileUri, content);
+            writeToFile(content);
             if (!isOverlayOn) {
                 long time = appUsedTime.get(currentForegroundPackage);
                 long targetTime = appTargetTime.get(currentForegroundPackage) + appGrantedTime.get(currentForegroundPackage);
@@ -186,7 +159,7 @@ public class CoreService extends AccessibilityService {
                     countDownTimer = new CountDownTimer(timeRemain, 1000) {
                         @Override
                         public void onTick(long millisUntilFinished) {
-                        Log.d(TAG, "onTick: " + millisUntilFinished / 1000 + "s remaining");
+                            Log.d(TAG, "onTick: " + millisUntilFinished / 1000 + "s remaining");
                         }
 
                         @Override
@@ -220,7 +193,7 @@ public class CoreService extends AccessibilityService {
     private void dailyClean() {
         // clean extra permitted time and reset intervention values
         String content = String.format(Locale.ENGLISH, "NEW_DAY;%d\n", System.currentTimeMillis());
-        writeToFile(dataFileUri, content);
+        writeToFile(content);
         resetInterventions();
         for (int i = 0; i < appUsedTime.size(); i++) {
             appUsedTime.setValueAt(i, 0L);
@@ -235,7 +208,6 @@ public class CoreService extends AccessibilityService {
         Log.d(TAG, "refreshUseTime: \n" + beginOfToday.get(Calendar.YEAR) + ' ' + beginOfToday.get(Calendar.MONTH) + " " + beginOfToday.get(Calendar.DATE));
         Map<String, UsageStats> stats = getUsageStats(beginOfToday.getTimeInMillis(), System.currentTimeMillis());
         CoreService.packageChosen.forEach((item) -> {
-//                Log.d(TAG, "run: has item " + item);
             long usedTime;
             try {
                 usedTime = stats.get(item).getTotalTimeInForeground();
@@ -247,14 +219,6 @@ public class CoreService extends AccessibilityService {
             } else {
                 appUsedTime.put(item, usedTime);
             }
-//            if (usedTime > timeBeforeOverlaid && currentForegroundPackage.equals(item)) {
-//                launchOverlayWindow();
-//            }
-//            usedTime /= 1000;
-//            long hour = usedTime / 3600;
-//            long minute = (usedTime - hour * 3600) / 60;
-//            long second = usedTime - hour * 3600 - minute * 60;
-//            Log.d(TAG, String.format("%s running %d hour, %d minute and %d second", item, hour, minute, second));
         });
     }
 
@@ -273,14 +237,49 @@ public class CoreService extends AccessibilityService {
         closeOverlayWindow();
         AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
         alarmManager.cancel(inStudySurveyPopUpIntent);
+        checkTimeHandler.removeCallbacks(checkTimeRunnable);
+        writeToFile("Accessibility stopped");
         return super.onUnbind(intent);
     }
 
+    private void clearAllArrays() {
+        packageChosen.removeAllElements();
+        appChosen.removeAllElements();
+        appUsedTime.forEach((k, v) -> {
+            appUsedTime.remove(k);
+        });
+        appInterventionCode.forEach((k, v) -> {
+            appInterventionCode.remove(k);
+        });
+    }
+
+    public void syncAppMap() {
+        db.collection(participantFilename).document("Settings").get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                clearAllArrays();
+                if (!task.isSuccessful()) {
+                    Log.e("firebase", "Error getting data", task.getException());
+                }
+                else {
+                    Log.d("firebase", String.valueOf(task.getResult().getData()));
+                    task.getResult().getData().forEach((k, v) -> {
+                        packageChosen.add(k);
+                        appChosen.add(packageNameMap.get(k));
+                        appUsedTime.put(k, 0L);
+                        appInterventionCode.put(k, v.toString());
+                    });
+                }
+            }
+        });
+    }
 
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
         window = new Window(this);
+        db = FirebaseFirestore.getInstance();
+        syncAppMap();
         AccessibilityServiceInfo info = new AccessibilityServiceInfo();
         info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_ALL_MASK;
@@ -288,11 +287,29 @@ public class CoreService extends AccessibilityService {
         this.setServiceInfo(info);
         Log.d(TAG, "onServiceConnected: \n" + screenWidth + ' ' + screenHeight);
         coreService = this;
+        checkTimeHandler = new Handler();
+        checkTimeRunnable = new Runnable() {
+            @Override
+            public void run() {
+                int date = (beginOfToday == null) ? 0 : beginOfToday.get(Calendar.DATE);
+                beginOfToday = Calendar.getInstance();
+                if (beginOfToday.get(Calendar.HOUR_OF_DAY) == 14) {
+                    writeToFile("14点");
+                }
+                if (date != 0 && date != beginOfToday.get(Calendar.DATE)) {
+                    dailyClean();
+                }
+                beginOfToday.set(Calendar.HOUR, 0);
+                beginOfToday.set(Calendar.MINUTE, 0);
+                beginOfToday.set(Calendar.SECOND, 0);
+                checkTimeHandler.postDelayed(checkTimeRunnable, 60000);
+            }
+        };
+        checkTimeRunnable.run();
 
         // get all installed apps
         getAllInstalledApps();
         Log.d(TAG, "onServiceConnected: Service connected");
-        dataFileUri = createFile(participantFilename);
         setInStudySurveyRepeat();
     }
 
@@ -324,37 +341,23 @@ public class CoreService extends AccessibilityService {
         CoreService.reverseDirection = false;
     }
 
-    public void writeToFile(Uri uri, String txt) {
-        try {
-            OutputStream fileOutputStream = this.getContentResolver().openOutputStream(uri, "wa");
-            fileOutputStream.write(txt.getBytes());
-            fileOutputStream.flush();
-            fileOutputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public void writeToFile(String txt) {
+        Map<String, Object> data = new ArrayMap<>();
+        Calendar cal = Calendar.getInstance();
+        data.put(cal.get(Calendar.YEAR) + "/" + (cal.get(Calendar.MONTH) + 1) + "/" + cal.get(Calendar.DATE) + " " + cal.get(Calendar.HOUR_OF_DAY) + ":" + cal.get(Calendar.MINUTE) + ":" + cal.get(Calendar.SECOND), txt);
+        db.collection(participantFilename).document("Behaviors").set(data, SetOptions.merge());
     }
-
-    private Uri createFile(String filename) {
-        File file = new File(Environment.DIRECTORY_DOCUMENTS, getString(R.string.app_name));
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
-        contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, file.toString());
-        Uri uri = this.getContentResolver().insert(MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), contentValues);
-        return uri;
-    }
-
 
     private void getAllInstalledApps() {
         List<PackageInfo> packageInfos = getPackageManager().getInstalledPackages(PackageManager.GET_PERMISSIONS);
         for (int i = 0; i < packageInfos.size(); i++) {
             PackageInfo packageInfo = packageInfos.get(i);
+            Log.d(TAG, packageInfo.packageName + " " + ((packageInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0));
             if ((packageInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
                 packageNameMap.put(packageInfo.packageName, packageInfo.applicationInfo.loadLabel(getPackageManager()).toString());
             } else {
                 systemPackages.add(packageInfo.packageName);
             }
-//            Log.d(TAG, "onServiceConnected: \n" + packageInfo.applicationInfo.loadLabel(getPackageManager()).toString() + "     " + packageInfo.packageName);
         }
         packageNameMap.put("com.google.android.youtube", "YouTube");
         systemPackages.remove("com.google.android.youtube");
@@ -422,51 +425,35 @@ public class CoreService extends AccessibilityService {
             return;
         }
         isDefaultInterventionLaunched = true;
-        AlertDialog dialog;
-        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
-        alertBuilder.setTitle("You reached the time limit!");
-        alertBuilder.setSingleChoiceItems(new String[]{"Stop use", "1 more minute", "5 more minutes", "Rest of the day"}, -1, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                isDefaultInterventionLaunched = false;
-                long oldValue;
-                String content;
-                switch (which) {
-                    case 0:
-                        Intent startMain = new Intent(Intent.ACTION_MAIN);
-                        startMain.addCategory(Intent.CATEGORY_HOME);
-                        startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        startActivity(startMain);
-                        dialog.dismiss();
-                        content = String.format(Locale.ENGLISH, "DEFAULT_INTERVENTION;%d;0\n", System.currentTimeMillis());
-                        writeToFile(dataFileUri, content);
-                        return;
-                    case 1:
-                        oldValue = appGrantedTime.get(currentForegroundPackage);
-                        appGrantedTime.put(currentForegroundPackage, oldValue + 60000);
-                        dialog.dismiss();
-                        content = String.format(Locale.ENGLISH, "DEFAULT_INTERVENTION;%d;1\n", System.currentTimeMillis());
-                        writeToFile(dataFileUri, content);
-                        return;
-                    case 2:
-                        oldValue = appGrantedTime.get(currentForegroundPackage);
-                        appGrantedTime.put(currentForegroundPackage, oldValue + 300000);
-                        dialog.dismiss();
-                        content = String.format(Locale.ENGLISH, "DEFAULT_INTERVENTION;%d;2\n", System.currentTimeMillis());
-                        writeToFile(dataFileUri, content);
-                        return;
-                    case 3:
-                        appGrantedTime.put(currentForegroundPackage, 86400000L);
-                        dialog.dismiss();
-                        content = String.format(Locale.ENGLISH, "DEFAULT_INTERVENTION;%d;3\n", System.currentTimeMillis());
-                        writeToFile(dataFileUri, content);
-                }
-            }
-        });
-        alertBuilder.setCancelable(false);
-        dialog = alertBuilder.create();
-        dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY);
-        dialog.show();
+        Intent intent = new Intent(this, AppBlockPage.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra("package_name", currentForegroundPackage);
+        startActivity(intent);
+    }
+
+    public View launchIgnoreLimitMenu() {
+        WindowManager windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        float height = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 250, getResources().getDisplayMetrics());
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(1080, (int) height,
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_DIM_BEHIND,
+                PixelFormat.TRANSPARENT);
+        params.gravity = Gravity.BOTTOM;
+        params.dimAmount = (float) 0.3;
+        LayoutInflater layoutInflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View menu = layoutInflater.inflate(R.layout.ignore_limit_select_menu, null);
+        menu.setBackgroundColor(Color.parseColor("#00123456"));
+        windowManager.addView(menu, params);
+        return menu;
+    }
+
+    public void closeIgnoreLimitMenu(View menu, String packageToGo) {
+        WindowManager windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        windowManager.removeView(menu);
+        if (packageToGo != null) {
+            Intent intent = getPackageManager().getLaunchIntentForPackage(packageToGo);
+            startActivity(intent);
+        }
     }
 
 
@@ -568,8 +555,6 @@ public class CoreService extends AccessibilityService {
         y = y + yOffset;
         if (x < 0 || y < 0) {
             Toast.makeText(this, "Offset double tap out of bound", Toast.LENGTH_SHORT).show();
-//            String content = String.format(Locale.ENGLISH, "DOUBLE_TAP_OUT_OF_BOUND;%d\n", System.currentTimeMillis());
-//            writeToFile(dataFileUri, content);
             return;
         }
         Path path = new Path();
@@ -580,11 +565,8 @@ public class CoreService extends AccessibilityService {
         clickBuilder.addStroke(clickStroke);
         clickBuilder.addStroke(clickStroke2);
         this.dispatchGesture(clickBuilder.build(), null, null);
-//        String content = String.format(Locale.ENGLISH, "SIM_DOUBLE_TAP;%d;%f;%f\n", System.currentTimeMillis(), x, y);
-//        writeToFile(dataFileUri, content);
     }
 
-//    @RequiresApi(api = Build.VERSION_CODES.S)
     public void broadcast(String title, String txt, boolean hasIntent) {
         Toast.makeText(this, title, Toast.LENGTH_SHORT).show();
         Intent fullScreenIntent = new Intent(this, LabQuiz.class);

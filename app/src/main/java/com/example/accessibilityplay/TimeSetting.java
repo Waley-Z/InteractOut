@@ -47,7 +47,7 @@ public class TimeSetting extends AppCompatActivity implements NumberPicker.OnVal
                 CoreService.appGrantedTime.put(currentPackageName, 0L);
                 PanelActivity.packageToSetTime.removeAllElements();
                 String content = String.format(Locale.ENGLISH, "APP_TIME_LIMIT;%d;%s;%s\n", System.currentTimeMillis(), currentPackageName, timeLimit);
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
                 TimeSetting.this.onBackPressed();
             }
         };
@@ -65,7 +65,7 @@ public class TimeSetting extends AppCompatActivity implements NumberPicker.OnVal
                 currentPackageName = PanelActivity.packageToSetTime.get((currentIdx));
                 instruction.setText(CoreService.packageNameMap.get(currentPackageName));
                 String content = String.format(Locale.ENGLISH, "APP_TIME_LIMIT;%d;%s;%s\n", System.currentTimeMillis(), currentPackageName, timeLimit);
-                CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                CoreService.coreService.writeToFile(content);
             }
         };
 

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "780571359166",
+    "project_id": "endless-tractor-360801",
+    "storage_bucket": "endless-tractor-360801.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:780571359166:android:03b36252e93a3c059aabef",
+        "android_client_info": {
+          "package_name": "com.example.accessibilityplay"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "780571359166-dl95dajsj3tn2km2379o23i1e5k68jai.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.accessibilityplay",
+            "certificate_hash": "e3d21c960b68a1615dfa26ae95b82dde702aec67"
+          }
+        },
+        {
+          "client_id": "780571359166-9unv8h8on1p3dkeb0hqdr4u5k9adbbnu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWzCL9-vtz5BrWQU4BapwNDmStFqC_u0E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "780571359166-9unv8h8on1p3dkeb0hqdr4u5k9adbbnu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

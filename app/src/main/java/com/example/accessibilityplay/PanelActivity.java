@@ -1,5 +1,6 @@
 package com.example.accessibilityplay;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.AlertDialog;
@@ -17,9 +18,15 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.chip.Chip;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Vector;
 
 public class PanelActivity extends AppCompatActivity  {
@@ -27,7 +34,6 @@ public class PanelActivity extends AppCompatActivity  {
     public static Vector<String> packageToSetTime = new Vector<>();
 
     private static final String TAG = "Main Panel";
-    private static long CHECKING_PERIOD = 1000; // 1 s
     private TextView declaredTimeDisplay;
 
     private View.OnClickListener appChoices, stop;
@@ -35,15 +41,32 @@ public class PanelActivity extends AppCompatActivity  {
     private boolean isLaunched = false;
     private Chip chipTapDelay, chipProlong, chipDouble, chipOffset;
     private Chip chipSwipeDelay, chipRatio, chipReverse, chipMultiple;
-//    private Handler repeatedCheckHandler = new Handler();
-//    private Runnable repeatedCheck = new Runnable() {
-//        @Override
-//        public void run() {
-//
-//            repeatedCheckHandler.postDelayed(repeatedCheck, CHECKING_PERIOD);
-//        }
-//    };
 
+    private void promptAccessibilitySettingNote() {
+        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(PanelActivity.this);
+        alertBuilder.setTitle("Warning");
+        alertBuilder.setItems(new String[]{"Please enable accessibility settings!"}, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                alertDialog.dismiss();
+            }
+        });
+        alertBuilder.setPositiveButton("Go to settings", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+                alertDialog.dismiss();
+            }
+        });
+        alertBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                alertDialog.dismiss();
+            }
+        });
+        alertDialog = alertBuilder.create();
+        alertDialog.show();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,45 +82,15 @@ public class PanelActivity extends AppCompatActivity  {
 
         declaredTimeDisplay = findViewById(R.id.declaredTimeDisplay);
 
-
-//        String[] strengthOptions = {"Slight", "Medium", "Salient"};
-//        strengthPicker.setDisplayedValues(strengthOptions);
-//        strengthPicker.setMinValue(0);
-//        strengthPicker.setMaxValue(2);
-//        strengthPicker.setValue(1);
-//        strengthPicker.setOnValueChangedListener(this);
-
         Button startApp = findViewById(R.id.startApp);
         startApp.setText("Choose Apps");
         appChoices = new View.OnClickListener() {
-            private Vector<String> app = new Vector<>(), packages = new Vector<>();
+            private final Vector<String> app = new Vector<>(), packages = new Vector<>();
             @Override
             public void onClick(View v) {
                 if (CoreService.packageNameMap.size() == 0) {
                     // tell user to enable accessibility settings first
-                    AlertDialog.Builder alertBuilder = new AlertDialog.Builder(PanelActivity.this);
-                    alertBuilder.setTitle("Warning");
-                    alertBuilder.setItems(new String[]{"Please enable accessibility settings!"}, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            alertDialog.dismiss();
-                        }
-                    });
-                    alertBuilder.setPositiveButton("Go to settings", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-                            alertDialog.dismiss();
-                        }
-                    });
-                    alertBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            alertDialog.dismiss();
-                        }
-                    });
-                    alertDialog = alertBuilder.create();
-                    alertDialog.show();
+                    promptAccessibilitySettingNote();
                 }
                 else {
                     AlertDialog.Builder alertBuilder = new AlertDialog.Builder(PanelActivity.this);
@@ -184,7 +177,6 @@ public class PanelActivity extends AppCompatActivity  {
 
         // set chips
 
-        TextView noteInformation = findViewById(R.id.noteInformation);
         chipTapDelay = findViewById(R.id.chipTapDelay);
         chipProlong = findViewById(R.id.chipProlong);
         chipDouble = findViewById(R.id.chipDouble);
@@ -197,15 +189,23 @@ public class PanelActivity extends AppCompatActivity  {
         chipTapDelay.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (CoreService.packageNameMap.size() == 0) {
+                    // tell user to enable accessibility settings first
+                    promptAccessibilitySettingNote();
+                    chipTapDelay.setChecked(!isChecked);
+                    return;
+                }
+                TextView tapDelayDes = findViewById(R.id.tapDelayDescription);
                 if (isChecked) {
                     CoreService.tapDelayMax = 800;
-                    noteInformation.setText("By selecting this intervention, you need to wait 1s for every tap to take effect");
+                    tapDelayDes.setVisibility(View.VISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_SELECT;%d;TAP_DELAY\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 } else {
                     CoreService.tapDelayMax = 0;
+                    tapDelayDes.setVisibility(View.INVISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_UNSELECT;%d;TAP_DELAY\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 }
                 CoreService.usingDefaultIntervention = !( chipTapDelay.isChecked() | chipProlong.isChecked() | chipDouble.isChecked() | chipOffset.isChecked() |
                         chipSwipeDelay.isChecked() | chipRatio.isChecked() | chipReverse.isChecked() | chipMultiple.isChecked());
@@ -217,15 +217,23 @@ public class PanelActivity extends AppCompatActivity  {
         chipProlong.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (CoreService.packageNameMap.size() == 0) {
+                    // tell user to enable accessibility settings first
+                    promptAccessibilitySettingNote();
+                    chipProlong.setChecked(!isChecked);
+                    return;
+                }
+                TextView tapProlongDes = findViewById(R.id.tapProlongDescription);
                 if (isChecked) {
                     CoreService.prolongMax = 200;
-                    noteInformation.setText("By selecting this intervention, you need to hold your finger on the screen for 200ms");
+                    tapProlongDes.setVisibility(View.VISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_SELECT;%d;TAP_PROLONG\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 } else {
                     CoreService.prolongMax = 0;
+                    tapProlongDes.setVisibility(View.INVISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_UNSELECT;%d;TAP_PROLONG\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 }
                 CoreService.usingDefaultIntervention = !( chipTapDelay.isChecked() | chipProlong.isChecked() | chipDouble.isChecked() | chipOffset.isChecked() |
                         chipSwipeDelay.isChecked() | chipRatio.isChecked() | chipReverse.isChecked() | chipMultiple.isChecked());
@@ -237,15 +245,23 @@ public class PanelActivity extends AppCompatActivity  {
         chipDouble.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (CoreService.packageNameMap.size() == 0) {
+                    // tell user to enable accessibility settings first
+                    promptAccessibilitySettingNote();
+                    chipDouble.setChecked(!isChecked);
+                    return;
+                }
+                TextView tapDoubleDes = findViewById(R.id.tapDoubleDescription);
                 if (isChecked) {
                     CoreService.isDoubleTapToSingleTap = true;
-                    noteInformation.setText("By selecting this intervention, you need to perform double tap in order to single tap");
+                    tapDoubleDes.setVisibility(View.VISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_SELECT;%d;TAP_DOUBLE\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 } else {
                     CoreService.isDoubleTapToSingleTap = false;
+                    tapDoubleDes.setVisibility(View.INVISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_UNSELECT;%d;TAP_DOUBLE\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 }
                 CoreService.usingDefaultIntervention = !( chipTapDelay.isChecked() | chipProlong.isChecked() | chipDouble.isChecked() | chipOffset.isChecked() |
                         chipSwipeDelay.isChecked() | chipRatio.isChecked() | chipReverse.isChecked() | chipMultiple.isChecked());
@@ -257,15 +273,23 @@ public class PanelActivity extends AppCompatActivity  {
         chipOffset.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (CoreService.packageNameMap.size() == 0) {
+                    // tell user to enable accessibility settings first
+                    promptAccessibilitySettingNote();
+                    chipOffset.setChecked(!isChecked);
+                    return;
+                }
+                TextView tapOffsetDes = findViewById(R.id.tapOffsetDescription);
                 if (isChecked) {
                     CoreService.yOffset = -200;
-                    noteInformation.setText("By selecting this intervention, you need to tap 200dp below the desired position");
+                    tapOffsetDes.setVisibility(View.VISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_SELECT;%d;TAP_OFFSET\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 } else {
                     CoreService.yOffset = 0;
+                    tapOffsetDes.setVisibility(View.INVISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_UNSELECT;%d;TAP_OFFSET\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 }
                 CoreService.xOffset = 0;
                 CoreService.usingDefaultIntervention = !( chipTapDelay.isChecked() | chipProlong.isChecked() | chipDouble.isChecked() | chipOffset.isChecked() |
@@ -278,15 +302,23 @@ public class PanelActivity extends AppCompatActivity  {
         chipSwipeDelay.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (CoreService.packageNameMap.size() == 0) {
+                    // tell user to enable accessibility settings first
+                    promptAccessibilitySettingNote();
+                    chipSwipeDelay.setChecked(!isChecked);
+                    return;
+                }
+                TextView swipeDelayDes = findViewById(R.id.swipeDelayDescription);
                 if (isChecked) {
                     CoreService.swipeDelayMax = 800;
-                    noteInformation.setText("By selecting this intervention, you need to wait 800ms for every swipe to take effect");
+                    swipeDelayDes.setVisibility(View.VISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_SELECT;%d;SWIPE_DELAY\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 } else {
                     CoreService.swipeDelayMax = 0;
+                    swipeDelayDes.setVisibility(View.INVISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_UNSELECT;%d;SWIPE_DELAY\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 }
                 CoreService.usingDefaultIntervention = !( chipTapDelay.isChecked() | chipProlong.isChecked() | chipDouble.isChecked() | chipOffset.isChecked() |
                         chipSwipeDelay.isChecked() | chipRatio.isChecked() | chipReverse.isChecked() | chipMultiple.isChecked());
@@ -298,15 +330,23 @@ public class PanelActivity extends AppCompatActivity  {
         chipRatio.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (CoreService.packageNameMap.size() == 0) {
+                    // tell user to enable accessibility settings first
+                    promptAccessibilitySettingNote();
+                    chipRatio.setChecked(!isChecked);
+                    return;
+                }
+                TextView swipeRatioDes = findViewById(R.id.swipeRatioDescription);
                 if (isChecked) {
                     CoreService.scrollRatioMax = 4;
-                    noteInformation.setText("By selecting this intervention, you need wait for every swipe to be replayed 4 times slower");
+                    swipeRatioDes.setVisibility(View.VISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_SELECT;%d;SWIPE_RATIO\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 } else {
                     CoreService.scrollRatioMax = 1;
+                    swipeRatioDes.setVisibility(View.INVISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_UNSELECT;%d;SWIPE_RATIO\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 }
                 CoreService.usingDefaultIntervention = !( chipTapDelay.isChecked() | chipProlong.isChecked() | chipDouble.isChecked() | chipOffset.isChecked() |
                         chipSwipeDelay.isChecked() | chipRatio.isChecked() | chipReverse.isChecked() | chipMultiple.isChecked());
@@ -318,15 +358,23 @@ public class PanelActivity extends AppCompatActivity  {
         chipReverse.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (CoreService.packageNameMap.size() == 0) {
+                    // tell user to enable accessibility settings first
+                    promptAccessibilitySettingNote();
+                    chipReverse.setChecked(!isChecked);
+                    return;
+                }
+                TextView swipeReverseDes = findViewById(R.id.swipeReverseDescription);
                 if (isChecked) {
                     CoreService.reverseDirection = true;
-                    noteInformation.setText("By selecting this intervention, you need to swipe in the reversed direction");
+                    swipeReverseDes.setVisibility(View.VISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_SELECT;%d;SWIPE_REVERSE\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 } else {
                     CoreService.reverseDirection = false;
+                    swipeReverseDes.setVisibility(View.INVISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_UNSELECT;%d;SWIPE_REVERSE\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 }
                 CoreService.usingDefaultIntervention = !( chipTapDelay.isChecked() | chipProlong.isChecked() | chipDouble.isChecked() | chipOffset.isChecked() |
                         chipSwipeDelay.isChecked() | chipRatio.isChecked() | chipReverse.isChecked() | chipMultiple.isChecked());
@@ -338,15 +386,24 @@ public class PanelActivity extends AppCompatActivity  {
         chipMultiple.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (CoreService.packageNameMap.size() == 0) {
+                    // tell user to enable accessibility settings first
+                    promptAccessibilitySettingNote();
+                    chipMultiple.setChecked(!isChecked);
+                    return;
+                }
+                TextView swipeMultipleDes = findViewById(R.id.swipeMultipleDescription);
                 if (isChecked) {
                     CoreService.swipeFingers = 2;
-                    noteInformation.setText("By selecting this intervention, you need to use 2 fingers to swipe");
+                    swipeMultipleDes.setVisibility(View.VISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_SELECT;%d;SWIPE_MULTIPLE\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);
+                    CoreService.coreService.writeToFile(content);
                 } else {
                     CoreService.swipeFingers = 1;
+                    swipeMultipleDes.setVisibility(View.INVISIBLE);
                     String content = String.format(Locale.ENGLISH, "INTERVENTION_UNSELECT;%d;SWIPE_MULTIPLE\n", System.currentTimeMillis());
-                    CoreService.coreService.writeToFile(CoreService.dataFileUri, content);                }
+                    CoreService.coreService.writeToFile(content);
+                }
                 CoreService.usingDefaultIntervention = !( chipTapDelay.isChecked() | chipProlong.isChecked() | chipDouble.isChecked() | chipOffset.isChecked() |
                         chipSwipeDelay.isChecked() | chipRatio.isChecked() | chipReverse.isChecked() | chipMultiple.isChecked());
                 String currentIntervention = CoreService.coreService.getCurrentInterventions();
@@ -356,8 +413,6 @@ public class PanelActivity extends AppCompatActivity  {
 
 
     }
-
-
 
     private void allowTapToSeeApps() {
         declaredTimeDisplay.setText("Tap to see the apps you have chosen.");
@@ -392,7 +447,6 @@ public class PanelActivity extends AppCompatActivity  {
     protected void onDestroy() {
         if (isLaunched)  {
             CoreService.coreService.disableSelf();
-//            repeatedCheckHandler.removeCallbacks(repeatedCheck);
             isLaunched = false;
         }
         super.onDestroy();
@@ -408,19 +462,6 @@ public class PanelActivity extends AppCompatActivity  {
         startActivity(intent);
     }
 
-    private void launchOverlayDelayed() {
-//        Handler handler = new Handler();
-//        handler.postDelayed(new Runnable() {
-//            @Override
-//            public void run() {
-//                MyAccessibilityService.myAccessibilityService.launchOverlayWindow();
-//            }
-//        }, MyAccessibilityService.timeBeforeOverlaid * 1000L);
-//        repeatedCheck.run();
-
-        Toast.makeText(this, "Start!", Toast.LENGTH_SHORT).show();
-        isLaunched = true;
-    }
 
     private void createNotificationChannel() {
         // Create the NotificationChannel, but only on API 26+ because
