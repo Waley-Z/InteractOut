@@ -5,13 +5,10 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.accessibilityservice.GestureDescription;
 import android.app.AlarmManager;
-import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
-import android.content.ContentValues;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -21,17 +18,20 @@ import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.os.CountDownTimer;
-import android.os.Environment;
 import android.os.Handler;
-import android.provider.MediaStore;
 import android.util.ArrayMap;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -44,10 +44,6 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
@@ -69,7 +65,9 @@ public class CoreService extends AccessibilityService {
             isDoubleTapToSingleTap = false,
             usingDefaultIntervention = true,
             isDefaultInterventionLaunched = false,
-            customizeIntervention = false;
+            customizeIntervention = false,
+            itemAdded = false;
+    public static int targetTimeFieldStudy = 60000; // 1 hour
     public static int tapDelay = 0, tapDelayMax = 0;
     public static int swipeDelay = 0, swipeDelayMax = 0;
     public static int minimumFingerToTap = 1;
@@ -79,15 +77,16 @@ public class CoreService extends AccessibilityService {
     public static int yOffset = 0;
     public static int prolongMax = 0;
     public static float scrollRatio = 1, scrollRatioMax = 1, scrollRatioExp = 0;
-    public static int strength = 1;
-    // TODO need to find out a way refill show time every day.
     public static int prolongNoteShowTime = 100;
     public static int screenWidth = 1080, screenHeight = 2400;
     public static String currentForegroundPackage = "", currrentClassName = "";
     public static String participantFilename = "test user";
     public static Vector<String> appChosen = new Vector<>(), packageChosen = new Vector<>(), systemPackages = new Vector<>();
     public static ArrayMap<String, Long> appUsedTime = new ArrayMap<>(), appTargetTime = new ArrayMap<>(), appGrantedTime = new ArrayMap<>();
+    public static ArrayMap<String, Integer> tapDelayValues = new ArrayMap<>(), swipeDelayValues = new ArrayMap<>(), tapProlongValues = new ArrayMap<>();
+    public static ArrayMap<String, Float> swipeRatioValues = new ArrayMap<>();
     public static ArrayMap<String, String> packageNameMap = new ArrayMap<>(), appInterventionCode = new ArrayMap<>();
+    public static Vector<ItemIds> itemIdArrays = new Vector<>();
     public FirebaseFirestore db;
 
     private final static String TAG = "MyAccessibilityService.java";
@@ -146,16 +145,22 @@ public class CoreService extends AccessibilityService {
             String content = String.format(Locale.ENGLISH, "USAGE;%d;%s;%s;%s\n", System.currentTimeMillis(), appUsedTime, appTargetTime, appGrantedTime);
             writeToFile(content);
             if (!isOverlayOn) {
-                long time = appUsedTime.get(currentForegroundPackage);
-                long targetTime = appTargetTime.get(currentForegroundPackage) + appGrantedTime.get(currentForegroundPackage);
-                if (time > targetTime) {
-                    if (usingDefaultIntervention) {
-                        launchDefaultIntervention(currentForegroundPackage);
-                    } else {
-                        launchOverlayWindow();
+                long time = 0;
+                for (int i = 0; i < appUsedTime.size(); i++) {
+                    time += appUsedTime.valueAt(i);
+                }
+//                long targetTime = appTargetTime.get(currentForegroundPackage) + appGrantedTime.get(currentForegroundPackage);
+                if (time > targetTimeFieldStudy) {
+                    if (appGrantedTime.get(currentForegroundPackage) == 0L) {
+                        lauchInterventionWithCode(currentForegroundPackage);
                     }
-                } else if (!isCountdownLaunched && targetTime > time) {
-                    long timeRemain = targetTime - time;
+//                    if (usingDefaultIntervention) {
+//                        launchDefaultIntervention(currentForegroundPackage);
+//                    } else {
+//                        launchOverlayWindow();
+//                    }
+                } else if (!isCountdownLaunched && targetTimeFieldStudy > time) {
+                    long timeRemain = targetTimeFieldStudy - time;
                     countDownTimer = new CountDownTimer(timeRemain, 1000) {
                         @Override
                         public void onTick(long millisUntilFinished) {
@@ -164,16 +169,22 @@ public class CoreService extends AccessibilityService {
 
                         @Override
                         public void onFinish() {
-                            if (usingDefaultIntervention) {
-                                launchDefaultIntervention(currentForegroundPackage);
-                            } else {
-                                launchOverlayWindow();
-                            }
+//                            if (usingDefaultIntervention) {
+//                                launchDefaultIntervention(currentForegroundPackage);
+//                            } else {
+//                                launchOverlayWindow();
+//                            }
+                            lauchInterventionWithCode(currentForegroundPackage);
                             isCountdownLaunched = false;
                         }
                     }.start();
                     isCountdownLaunched = true;
                     Toast.makeText(this, "countdown turned on", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                closeOverlayWindow();
+                if (appGrantedTime.get(currentForegroundPackage) == 0L) {
+                    lauchInterventionWithCode(currentForegroundPackage);
                 }
             }
         } else {
@@ -190,11 +201,24 @@ public class CoreService extends AccessibilityService {
         }
     }
 
+    private void lauchInterventionWithCode(String currentForegroundPackage) {
+        String interventionCode = appInterventionCode.get(currentForegroundPackage);
+        if (interventionCode.charAt(0) == '1') {
+            // default
+            launchDefaultIntervention(currentForegroundPackage);
+        } else {
+            // interactout interventions
+            setInterventions(interventionCode.charAt(1), interventionCode.charAt(2));
+            launchOverlayWindow();
+        }
+    }
+
     private void dailyClean() {
         // clean extra permitted time and reset intervention values
         String content = String.format(Locale.ENGLISH, "NEW_DAY;%d\n", System.currentTimeMillis());
         writeToFile(content);
         resetInterventions();
+        syncAppMap();
         for (int i = 0; i < appUsedTime.size(); i++) {
             appUsedTime.setValueAt(i, 0L);
         }
@@ -245,6 +269,13 @@ public class CoreService extends AccessibilityService {
     private void clearAllArrays() {
         packageChosen.removeAllElements();
         appChosen.removeAllElements();
+        itemIdArrays.forEach(i -> {
+            if (i.countDownTimer != null) {
+                i.countDownTimer.onFinish();
+                i.countDownTimer.cancel();
+            }
+        });
+        itemIdArrays.removeAllElements();
         appUsedTime.forEach((k, v) -> {
             appUsedTime.remove(k);
         });
@@ -267,7 +298,9 @@ public class CoreService extends AccessibilityService {
                         packageChosen.add(k);
                         appChosen.add(packageNameMap.get(k));
                         appUsedTime.put(k, 0L);
+                        appGrantedTime.put(k, 0L);
                         appInterventionCode.put(k, v.toString());
+                        itemIdArrays.add(new ItemIds(View.generateViewId(), View.generateViewId(), View.generateViewId(), View.generateViewId()));
                     });
                 }
             }
@@ -279,7 +312,6 @@ public class CoreService extends AccessibilityService {
         super.onServiceConnected();
         window = new Window(this);
         db = FirebaseFirestore.getInstance();
-        syncAppMap();
         AccessibilityServiceInfo info = new AccessibilityServiceInfo();
         info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_ALL_MASK;
@@ -293,11 +325,15 @@ public class CoreService extends AccessibilityService {
             public void run() {
                 int date = (beginOfToday == null) ? 0 : beginOfToday.get(Calendar.DATE);
                 beginOfToday = Calendar.getInstance();
-                if (beginOfToday.get(Calendar.HOUR_OF_DAY) == 14) {
-                    writeToFile("14点");
+                if (beginOfToday.get(Calendar.MINUTE) == 15) {
+                    // for testing
+                    writeToFile("15分");
                 }
                 if (date != 0 && date != beginOfToday.get(Calendar.DATE)) {
                     dailyClean();
+                }
+                if (isOverlayOn) {
+                    stepIncrease();
                 }
                 beginOfToday.set(Calendar.HOUR, 0);
                 beginOfToday.set(Calendar.MINUTE, 0);
@@ -309,6 +345,7 @@ public class CoreService extends AccessibilityService {
 
         // get all installed apps
         getAllInstalledApps();
+        syncAppMap();
         Log.d(TAG, "onServiceConnected: Service connected");
         setInStudySurveyRepeat();
     }
@@ -341,6 +378,69 @@ public class CoreService extends AccessibilityService {
         CoreService.reverseDirection = false;
     }
 
+    private void resetInterventionLimit() {
+        tapDelayMax = 0;
+        prolongMax = 0;
+        swipeDelayMax = 0;
+        scrollRatioMax = 1;
+    }
+
+    private void setInterventions(char tapIntervention, char swipeIntervention) {
+        resetInterventionLimit();
+        resetInterventions();
+        switch (tapIntervention) {
+            case 'a':
+                tapDelayMax = 800;
+                try {
+                    tapDelay = tapDelayValues.get(currentForegroundPackage);
+                } catch (NullPointerException e) {
+                    tapDelay = 0;
+                }
+                break;
+            case 'b':
+                prolongMax = 200;
+                try {
+                    GestureDetector.TAP_THRESHOLD = tapProlongValues.get(currentForegroundPackage);
+                } catch (NullPointerException e) {
+                    GestureDetector.TAP_THRESHOLD = 0;
+                }
+                break;
+            case 'c':
+                isDoubleTapToSingleTap = true;
+                break;
+            case 'd':
+                yOffset = -200;
+                break;
+        }
+
+        switch (swipeIntervention) {
+            case 'a':
+                swipeDelayMax = 800;
+                try {
+                    swipeDelay = swipeDelayValues.get(currentForegroundPackage);
+                } catch (NullPointerException e) {
+                    swipeDelay = 0;
+                }
+                break;
+            case 'b':
+                scrollRatioMax = 4;
+                try {
+                    scrollRatio = swipeRatioValues.get(currentForegroundPackage);
+                } catch (NullPointerException e) {
+                    scrollRatio = 0;
+                }
+                break;
+            case 'c':
+                reverseDirection = true;
+                break;
+            case 'd':
+                swipeFingers = 2;
+                break;
+        }
+        String currentIntervention = getCurrentInterventions();
+        broadcastField("Current Interventions", currentIntervention, 2, true);
+    }
+
     public void writeToFile(String txt) {
         Map<String, Object> data = new ArrayMap<>();
         Calendar cal = Calendar.getInstance();
@@ -352,7 +452,7 @@ public class CoreService extends AccessibilityService {
         List<PackageInfo> packageInfos = getPackageManager().getInstalledPackages(PackageManager.GET_PERMISSIONS);
         for (int i = 0; i < packageInfos.size(); i++) {
             PackageInfo packageInfo = packageInfos.get(i);
-            Log.d(TAG, packageInfo.packageName + " " + ((packageInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0));
+//            Log.d(TAG, packageInfo.packageName + " " + ((packageInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) + " " + getPackageManager().getApplicationLabel(packageInfo.applicationInfo));
             if ((packageInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
                 packageNameMap.put(packageInfo.packageName, packageInfo.applicationInfo.loadLabel(getPackageManager()).toString());
             } else {
@@ -401,13 +501,20 @@ public class CoreService extends AccessibilityService {
             scrollRatio = (float) Math.pow(scrollRatioMax, scrollRatioExp);
             scrollRatioExp += 0.1;
         }
+        if (packageChosen.contains(currentForegroundPackage)) {
+            tapDelayValues.put(currentForegroundPackage, tapDelay);
+            swipeDelayValues.put(currentForegroundPackage, swipeDelay);
+            tapProlongValues.put(currentForegroundPackage, GestureDetector.TAP_THRESHOLD);
+            swipeRatioValues.put(currentForegroundPackage, scrollRatio);
+        }
+        Log.d(TAG, "increaseIntensity: tapDelayValues" + tapDelayValues);
         broadcastField("Current Intervention", getCurrentInterventions(), 2, true);
     }
 
     public String getCurrentInterventions() {
-        if (CoreService.usingDefaultIntervention) {
-            return "Lockout Window";
-        }
+//        if (CoreService.usingDefaultIntervention) {
+//            return "Lockout Window";
+//        }
         String res = "";
         if (tapDelayMax != 0) res += String.format(Locale.ENGLISH, "Tap delay: %dms\n", CoreService.tapDelay + 200);
         if (prolongMax != 0) res += String.format(Locale.ENGLISH, "Tap prolong: %dms\n", GestureDetector.TAP_THRESHOLD);
@@ -417,7 +524,7 @@ public class CoreService extends AccessibilityService {
         if (scrollRatioMax != 1) res += String.format(Locale.ENGLISH, "Swipe ratio: x%.2f\n", CoreService.scrollRatio);
         if (reverseDirection) res += "Swipe direction reversed\n";
         if (swipeFingers != 1) res += String.format(Locale.ENGLISH, "%d fingers to swipe\n", CoreService.swipeFingers);
-        return (!res.equals("")) ? res.substring(0, res.length() - 1) : "";
+        return (!res.equals("")) ? res.substring(0, res.length() - 1) : "Lockout Window";
     }
 
     private void launchDefaultIntervention(String currentForegroundPackage) {
@@ -433,7 +540,7 @@ public class CoreService extends AccessibilityService {
 
     public View launchIgnoreLimitMenu() {
         WindowManager windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-        float height = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 250, getResources().getDisplayMetrics());
+        float height = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 200, getResources().getDisplayMetrics());
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(1080, (int) height,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_DIM_BEHIND,

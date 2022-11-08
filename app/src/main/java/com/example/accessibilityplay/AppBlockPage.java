@@ -40,7 +40,8 @@ public class AppBlockPage extends AppCompatActivity {
         ignoreLimitBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ignoreLimitHandler();
+//                ignoreLimitHandler();
+                AppBlockPage.this.onBackPressed();
             }
         });
         String content = String.format(Locale.ENGLISH, "DEFAULT_INTERVENTION;%d;block window launch\n", System.currentTimeMillis());
