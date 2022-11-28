@@ -1,6 +1,6 @@
 # InteractOut: Leveraging Interaction Proxies as Input Manipulation Strategies for Reducing Smartphone Overuse
 
-InteractOut is a smartphone overuse intervention tool that use Interaction Proxies [] techniques to make users’ touch input less usable in order to reduce users’ desire to continue using smartphone.
+InteractOut is a smartphone overuse intervention tool that use Interaction Proxies [1] techniques to make users’ touch input less usable in order to reduce users’ desire to continue using smartphone.
 
 This is the source code of InteractOut. See [Video](https://drive.google.com/file/d/177BVF8shGs5Xjz2Nt0oybrWhsk6aJCrr/view?usp=sharing) for the brief introduction.
 
@@ -78,3 +78,6 @@ User Page is the main page for general users. The user is able choose the target
 Customization Page is the control panel of all interventions. Users can adjust these sliders to change the values of the intervention they use.
 
 <img src="Assets/customization_page.png" alt="customization page" width="300"/>
+
+# Reference
+[1] Xiaoyi Zhang, Anne Spencer Ross, Anat Caspi, James Fogarty, and Jacob O. Wobbrock. 2017. Interaction Proxies for Runtime Repair and Enhancement of Mobile Application Accessibility. *In Proceedings of the 2017 CHI Conference on Human Factors in Computing Systems* (Denver, Colorado, USA) (*CHI ’17*). Association for Computing Machinery, New York, NY, USA, 6024–6037. https://doi.org/10.1145/3025453.3025846
