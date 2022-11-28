@@ -67,7 +67,8 @@ public class FieldStudyStartPage extends AppCompatActivity {
     }
 
     private void addItem(int idx) {
-        RelativeLayout.LayoutParams btnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        RelativeLayout.LayoutParams btnParams =
+                new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         btnParams.addRule(RelativeLayout.ALIGN_PARENT_END);
         btnParams.addRule(RelativeLayout.CENTER_VERTICAL);
         btnParams.rightMargin = 100;
@@ -81,7 +82,8 @@ public class FieldStudyStartPage extends AppCompatActivity {
         txt.setId(CoreService.itemIdArrays.get(idx).textId);
         RelativeLayout relativeLayout = new RelativeLayout(appLinearLayout.getContext());
         LinearLayout btnLayout = new LinearLayout(relativeLayout.getContext());
-        LinearLayout.LayoutParams btnParam = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        LinearLayout.LayoutParams btnParam =
+                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         btnParam.setMargins(0, 10, 0, 10);
         btnLayout.setOrientation(LinearLayout.VERTICAL);
 
@@ -117,7 +119,8 @@ public class FieldStudyStartPage extends AppCompatActivity {
         }
         relativeLayout.addView(txt, txtParams);
         relativeLayout.addView(btnLayout, btnParams);
-        RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        RelativeLayout.LayoutParams layoutParams =
+                new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         layoutParams.setMargins(0, 20, 0, 20);
         relativeLayout.setLayoutParams(layoutParams);
         appLinearLayout.addView(relativeLayout);

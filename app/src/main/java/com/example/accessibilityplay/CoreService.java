@@ -101,13 +101,13 @@ public class CoreService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
-
         Log.d(TAG, "onAccessibilityEvent: \n" + accessibilityEvent);
         if (accessibilityEvent.getPackageName() == null
                 || (accessibilityEvent.getPackageName().equals(getPackageName())
                 && (accessibilityEvent.getClassName().equals("android.view.ViewGroup")
                 || accessibilityEvent.getClassName().equals("android.app.AlertDialog"))))
         {
+            // escape some system packages
             Log.d(TAG, "onAccessibilityEvent: Returned");
             Log.d(TAG, "onAccessibilityEvent: isOverlay = " + isOverlayOn);
             return;
@@ -142,23 +142,19 @@ public class CoreService extends AccessibilityService {
         Log.d(TAG, "onAccessibilityEvent: \n" + appUsedTime + '\n' + appTargetTime);
         boolean isTargetApp = appUsedTime.containsKey(currentForegroundPackage);
         if (isTargetApp) {
-            String content = String.format(Locale.ENGLISH, "USAGE;%d;%s;%s;%s\n", System.currentTimeMillis(), appUsedTime, appTargetTime, appGrantedTime);
+            String content =
+                    String.format(Locale.ENGLISH, "USAGE;%d;%s;%s;%s\n",
+                            System.currentTimeMillis(), appUsedTime, appTargetTime, appGrantedTime);
             writeToFile(content);
             if (!isOverlayOn) {
                 long time = 0;
                 for (int i = 0; i < appUsedTime.size(); i++) {
                     time += appUsedTime.valueAt(i);
                 }
-//                long targetTime = appTargetTime.get(currentForegroundPackage) + appGrantedTime.get(currentForegroundPackage);
                 if (time > targetTimeFieldStudy) {
                     if (appGrantedTime.get(currentForegroundPackage) == 0L) {
                         lauchInterventionWithCode(currentForegroundPackage);
                     }
-//                    if (usingDefaultIntervention) {
-//                        launchDefaultIntervention(currentForegroundPackage);
-//                    } else {
-//                        launchOverlayWindow();
-//                    }
                 } else if (!isCountdownLaunched && targetTimeFieldStudy > time) {
                     long timeRemain = targetTimeFieldStudy - time;
                     countDownTimer = new CountDownTimer(timeRemain, 1000) {
@@ -169,11 +165,6 @@ public class CoreService extends AccessibilityService {
 
                         @Override
                         public void onFinish() {
-//                            if (usingDefaultIntervention) {
-//                                launchDefaultIntervention(currentForegroundPackage);
-//                            } else {
-//                                launchOverlayWindow();
-//                            }
                             lauchInterventionWithCode(currentForegroundPackage);
                             isCountdownLaunched = false;
                         }
@@ -191,7 +182,6 @@ public class CoreService extends AccessibilityService {
             if (isOverlayOn || isLongpressListenerOn) {
                 Log.d(TAG, "onAccessibilityEvent: " + isOverlayOn + ' ' + isLongpressListenerOn);
                 closeOverlayWindow();
-//                currentForegroundPackage = "";
             }
             if (isCountdownLaunched) {
                 countDownTimer.cancel();
@@ -512,9 +502,6 @@ public class CoreService extends AccessibilityService {
     }
 
     public String getCurrentInterventions() {
-//        if (CoreService.usingDefaultIntervention) {
-//            return "Lockout Window";
-//        }
         String res = "";
         if (tapDelayMax != 0) res += String.format(Locale.ENGLISH, "Tap delay: %dms\n", CoreService.tapDelay + 200);
         if (prolongMax != 0) res += String.format(Locale.ENGLISH, "Tap prolong: %dms\n", GestureDetector.TAP_THRESHOLD);
